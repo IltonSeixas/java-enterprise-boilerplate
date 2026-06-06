@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: gradle
+
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v3
+
+      - name: Compile
+        run: ./gradlew compileJava compileTestJava
+
+      - name: Format check (Spotless)
+        run: ./gradlew spotlessCheck
+
+      - name: Architecture tests
+        run: ./gradlew test --tests "com.enterprise.boilerplate.ArchitectureTest"
+
+      - name: Unit tests
+        run: ./gradlew test -x integrationTest
+
+      - name: Coverage report
+        run: ./gradlew jacocoTestReport
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: build/reports/jacoco/test/jacocoTestReport.xml
+
+      - name: Integration tests
+        run: ./gradlew test -Pintegration
+
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: gradle
+      - name: OWASP Dependency Check
+        run: ./gradlew dependencyCheckAnalyze
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: build/reports/dependency-check-report.html

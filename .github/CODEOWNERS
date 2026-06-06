@@ -1,0 +1,10 @@
+# Global owner — required reviewer for all changes
+* @iltonseixas
+
+# Domain and application layers require stricter review
+/src/main/java/com/enterprise/boilerplate/domain/ @iltonseixas
+/src/main/java/com/enterprise/boilerplate/application/ @iltonseixas
+
+# Security-sensitive files
+/src/main/java/com/enterprise/boilerplate/infrastructure/security/ @iltonseixas
+/.github/workflows/ @iltonseixas
