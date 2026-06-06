@@ -1,6 +1,6 @@
 # ADR-0004: Enable Project Loom Virtual Threads
 
-**Date:** 2024-01-01  
+**Date:** 2026-06-06  
 **Status:** Accepted
 
 ---
