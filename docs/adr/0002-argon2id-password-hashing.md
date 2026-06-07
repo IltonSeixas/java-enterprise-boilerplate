@@ -11,15 +11,15 @@ Spring Security's default `PasswordEncoder` is `BCryptPasswordEncoder`. For a se
 
 ## Decision
 
-**Argon2id** via `Spring Security Crypto` backed by **BouncyCastle**. Parameters: 64 MB memory, 3 iterations, 4 lanes (OWASP recommended).
+**Argon2id** computed directly through **BouncyCastle**'s low-level `Argon2BytesGenerator`/`Argon2Parameters` API, wrapped by `Argon2PasswordHasher` behind the `PasswordHasherPort` abstraction. Parameters: 64 MB memory, 3 iterations, 4 lanes (OWASP recommended).
 
 ## Consequences
 
 **Positive:**
 - Argon2id is the OWASP recommendation since 2019 for new systems.
-- Spring Security Crypto provides `Argon2PasswordEncoder` — integrates with existing Spring Security infrastructure with no additional wiring.
 - BouncyCastle is the reference JVM crypto library — FIPS-certified implementation available.
-- Constant-time comparison is handled by the encoder internally.
+- Owning the PHC-string encoding ourselves keeps the hashing concern fully behind `PasswordHasherPort`, with no Spring Security `PasswordEncoder` coupling — the domain and application layers never see BouncyCastle types.
+- Verification uses `MessageDigest.isEqual` for constant-time comparison, preventing timing attacks.
 
 **Negative:**
 - BouncyCastle adds a dependency (~multi-MB JAR) and requires occasional updates as new versions are released.

@@ -11,16 +11,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 ### Added
 - Initial project structure: Clean Architecture + DDD layers
 - In-memory user repository adapter (zero-config default)
-- Argon2id password hashing via Spring Security Crypto + BouncyCastle
-- JWT RS256 access token + opaque refresh token with Redis rotation
-- Spring MVC HTTP server with security filters (Bucket4j rate limiting, CORS, security headers)
-- gRPC server via `grpc-spring-boot-starter`
-- Micrometer tracing (OpenTelemetry bridge), Prometheus metrics, structured JSON logs via Logback
+- Argon2id password hashing computed directly via BouncyCastle's `Argon2BytesGenerator`, behind a `PasswordHasherPort` abstraction
+- JWT HS256 access token (returned in the response body) + opaque refresh token delivered as an HttpOnly/Secure/SameSite=Strict cookie, rotated and stored server-side in Redis
+- Spring MVC HTTP server with security filters (CORS allow-list, security headers, JWT authentication)
+- gRPC server via `net.devh:grpc-spring-boot-starter`
+- Micrometer tracing (OpenTelemetry OTLP bridge) and Prometheus metrics through Spring Boot Actuator
 - PostgreSQL adapter via Spring Data JPA + Flyway migrations
 - Virtual Threads (Project Loom) enabled globally
-- ArchUnit tests enforcing Clean Architecture dependency rules
 - Docker multi-stage image (Eclipse Temurin 21) and docker-compose stack
-- GitHub Actions CI (compile, spotless, test, OWASP dependency-check), Docker, and Release workflows
+- GitHub Actions CI (compile, unit tests, OWASP dependency-check), Docker, and Release workflows
 - Architecture documentation, ADRs, security policy
 
 [Unreleased]: https://github.com/IltonSeixas/java-enterprise-boilerplate/compare/HEAD

@@ -33,62 +33,77 @@ This project implements Clean Architecture (also known as Hexagonal Architecture
 ```
 src/main/java/com/enterprise/boilerplate/
 │
+├── Application.java                       # Spring Boot entry point
+│
 ├── domain/
 │   ├── entity/
-│   │   └── User.java                  # Aggregate root (plain Java, no JPA annotations)
+│   │   └── User.java                      # Aggregate root (plain Java, no JPA annotations)
 │   ├── valueobject/
-│   │   ├── Email.java                 # Record — validated on construction
-│   │   ├── PasswordHash.java          # Opaque wrapper (record)
-│   │   └── UserId.java                # UUID newtype (record)
+│   │   ├── Email.java                     # Record — validated on construction
+│   │   ├── PasswordHash.java              # Opaque wrapper (record)
+│   │   └── UserId.java                    # UUID newtype (record)
 │   ├── repository/
-│   │   └── UserRepository.java        # Interface: the only contract infra must fulfill
+│   │   └── UserRepository.java            # Interface: the only contract infra must fulfill
 │   └── exception/
-│       └── DomainException.java       # Sealed class hierarchy
+│       ├── DomainException.java           # Sealed exception hierarchy root
+│       └── ...                            # InvalidEmailException, UserNotFoundException, etc.
 │
 ├── application/
 │   ├── usecase/
 │   │   ├── RegisterUserUseCase.java
 │   │   ├── LoginUserUseCase.java
 │   │   ├── RefreshTokenUseCase.java
-│   │   └── LogoutUserUseCase.java
-│   ├── port/
-│   │   ├── in/
-│   │   │   ├── RegisterUserCommand.java   # Record (input port)
-│   │   │   └── LoginUserCommand.java
-│   │   └── out/
-│   │       ├── PasswordHasherPort.java    # Interface: hash + verify
-│   │       └── TokenIssuerPort.java       # Interface: issue + validate JWT
+│   │   ├── LogoutUseCase.java
+│   │   ├── GetUserUseCase.java
+│   │   ├── UpdateProfileUseCase.java
+│   │   └── ChangePasswordUseCase.java
+│   ├── port/out/
+│   │   ├── PasswordHasherPort.java        # Interface: hash + verify
+│   │   └── TokenServicePort.java          # Interface: issue, validate and rotate JWTs
 │   └── dto/
-│       ├── RegisterUserRequest.java       # Record + Jakarta validation
-│       └── AuthResponse.java             # Record
+│       ├── RegisterUserRequest.java       # Records + Jakarta validation
+│       ├── LoginRequest.java
+│       ├── RefreshTokenRequest.java
+│       ├── ChangePasswordRequest.java
+│       ├── UpdateProfileRequest.java
+│       ├── AuthResponse.java
+│       └── UserResponse.java
 │
 ├── infrastructure/
 │   ├── persistence/
 │   │   ├── memory/
-│   │   │   └── InMemoryUserRepository.java
+│   │   │   └── InMemoryUserRepository.java   # @Profile("inmemory") — default, zero-config
 │   │   └── postgres/
-│   │       ├── JpaUserRepository.java     # Spring Data JPA interface
-│   │       ├── UserJpaEntity.java         # JPA entity (separate from domain entity)
-│   │       └── PostgresUserRepository.java
+│   │       ├── JpaUserRepository.java        # Spring Data JPA interface
+│   │       ├── UserJpaEntity.java            # JPA entity (separate from domain entity)
+│   │       └── PostgresUserRepository.java   # @Profile("postgres") — adapts JPA to UserRepository
 │   ├── security/
-│   │   ├── Argon2PasswordHasher.java
-│   │   └── JwtService.java
+│   │   ├── Argon2PasswordHasher.java         # BouncyCastle Argon2id, hand-rolled PHC encoding
+│   │   ├── JwtTokenService.java              # Issues/validates JWTs, rotates refresh tokens via Redis
+│   │   └── JwtAuthenticationFilter.java      # Validates bearer tokens on every request
 │   ├── cache/
-│   │   └── RedisTokenStore.java
+│   │   └── RedisTokenStore.java              # Refresh-token storage and rotation
+│   ├── config/
+│   │   ├── ApplicationConfig.java
+│   │   ├── RedisConfig.java
+│   │   └── SecurityConfig.java               # CORS, security headers, filter chain
 │   └── telemetry/
-│       └── ObservabilityConfig.java
+│       └── OpenTelemetryConfig.java
 │
 └── interfaces/
     ├── rest/
     │   ├── AuthController.java
     │   ├── UserController.java
-    │   ├── GlobalExceptionHandler.java    # @RestControllerAdvice
-    │   └── filter/
-    │       ├── JwtAuthFilter.java
-    │       ├── RateLimitFilter.java
-    │       └── SecurityHeadersFilter.java
+    │   └── GlobalExceptionHandler.java        # @RestControllerAdvice
+    ├── filter/
+    │   └── RequestLoggingFilter.java
     └── grpc/
-        └── UserGrpcService.java
+        ├── AuthGrpcService.java
+        ├── UserGrpcService.java
+        ├── GrpcAuthenticationInterceptor.java
+        ├── GrpcAuthenticatedCaller.java
+        ├── GrpcExceptionMapper.java
+        └── GrpcMappers.java
 ```
 
 ---
@@ -124,8 +139,12 @@ public sealed class DomainException extends RuntimeException
 
 ```java
 public interface UserRepository {
+    Optional<User> findById(UserId id);
     Optional<User> findByEmail(Email email);
     void save(User user);
+    boolean existsByEmail(Email email);
+    boolean hasOwner();
+    void saveFirstOwner(User user);
 }
 ```
 
@@ -149,12 +168,13 @@ public class RegisterUserUseCase {
         this.hasher = hasher;
     }
 
-    public void execute(RegisterUserCommand command) {
-        // 1. validate command (Bean Validation fired by caller)
+    public UserResponse execute(RegisterUserRequest request) {
+        // 1. validate request (Bean Validation fired by the controller)
         // 2. check uniqueness
         // 3. hash password
         // 4. construct domain entity
         // 5. persist
+        // 6. map to response DTO
     }
 }
 ```

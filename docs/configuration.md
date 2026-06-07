@@ -25,8 +25,7 @@ Activate the PostgreSQL profile with: `SPRING_PROFILES_ACTIVE=postgres`
 
 | Property / Env Var | Required | Default | Description |
 |---|---|---|---|
-| `ADAPTER` | No | `memory` | Persistence adapter: `memory` or `postgres` |
-| `SPRING_PROFILES_ACTIVE` | No | `inmemory` | Active Spring profile: `inmemory` or `postgres` |
+| `SPRING_PROFILES_ACTIVE` | No | `inmemory` | Active Spring profile — selects the persistence adapter: `inmemory` or `postgres` |
 | `SPRING_DATASOURCE_URL` | If `postgres` | `jdbc:postgresql://localhost:5432/boilerplate` | JDBC PostgreSQL URL |
 | `SPRING_DATASOURCE_USERNAME` | If `postgres` | `boilerplate` | Database user |
 | `SPRING_DATASOURCE_PASSWORD` | If `postgres` | `boilerplate` | Database password |
@@ -65,8 +64,8 @@ Activate the PostgreSQL profile with: `SPRING_PROFILES_ACTIVE=postgres`
 
 | Property | Required | Default | Description |
 |---|---|---|---|
-| `management.endpoints.web.exposure.include` | No | `health,prometheus` | Exposed actuator endpoints |
-| `management.endpoint.health.show-details` | No | `never` | Never expose health details publicly |
+| `management.endpoints.web.exposure.include` | No | `health,info,metrics,prometheus` | Exposed actuator endpoints |
+| `management.endpoint.health.show-details` | No | `when_authorized` | Health details are only shown to authorized callers |
 
 ---
 
