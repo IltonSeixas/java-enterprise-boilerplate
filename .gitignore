@@ -1,7 +1,5 @@
-.gradle
-build
 target
 .env
 *.pem
 *.jar
-!gradle/wrapper/gradle-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar

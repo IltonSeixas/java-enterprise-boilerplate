@@ -11,22 +11,17 @@ The in-memory adapter exists precisely to make the entire business logic testabl
 ## Running Tests
 
 ```bash
-# Unit tests only (fast, no external deps)
-./gradlew test
+# Unit tests only (fast, no external deps — this is the default)
+./mvnw test
 
-# Integration tests (requires Docker for Testcontainers)
-./gradlew test -Pintegration
+# Integration tests (tagged with @Tag("integration"), excluded by default)
+./mvnw test -Dgroups=integration -DexcludedGroups=
 
 # Specific test class
-./gradlew test --tests "com.enterprise.boilerplate.application.usecase.RegisterUserUseCaseTest"
-
-# Coverage report (JaCoCo)
-./gradlew jacocoTestReport
-# Report: build/reports/jacoco/test/html/index.html
-
-# Architecture tests
-./gradlew test --tests "com.enterprise.boilerplate.ArchitectureTest"
+./mvnw test -Dtest=RegisterUserUseCaseTest
 ```
+
+The Surefire plugin is configured with `<excludedGroups>integration</excludedGroups>` in `pom.xml`, so `./mvnw test` runs only unit tests by default. Passing `-Dgroups=integration -DexcludedGroups=` overrides both properties to run the integration suite instead.
 
 ---
 
@@ -37,22 +32,27 @@ src/test/java/com/enterprise/boilerplate/
 │
 ├── domain/
 │   ├── valueobject/
-│   │   ├── EmailTest.java              # value object tests
-│   │   └── PasswordHashTest.java
+│   │   └── EmailTest.java                    # value object tests
 │   └── entity/
-│       └── UserTest.java               # entity invariant tests
+│       └── UserTest.java                     # entity invariant tests
 │
 ├── application/
 │   └── usecase/
-│       ├── RegisterUserUseCaseTest.java  # use case tests with Mockito
-│       └── LoginUserUseCaseTest.java
+│       ├── RegisterUserUseCaseTest.java       # use case tests with Mockito
+│       ├── LoginUserUseCaseTest.java
+│       ├── RefreshTokenUseCaseTest.java
+│       ├── GetUserUseCaseTest.java
+│       ├── UpdateProfileUseCaseTest.java
+│       ├── ChangePasswordUseCaseTest.java
+│       └── LogoutUseCaseTest.java
 │
 ├── infrastructure/
 │   └── persistence/
-│       └── postgres/
-│           └── PostgresUserRepositoryIT.java  # Testcontainers integration test
+│       └── InMemoryUserRepositoryTest.java    # in-memory adapter tests
 │
-└── ArchitectureTest.java               # ArchUnit dependency rule enforcement
+└── interfaces/
+    └── grpc/
+        └── GrpcServerIntegrationTest.java     # @Tag("integration") — in-process gRPC suite
 ```
 
 ---
@@ -123,84 +123,78 @@ class RegisterUserUseCaseTest {
 
 ## Integration Tests
 
-Integration tests use the `IT` suffix convention and run with Testcontainers. A PostgreSQL container is started once per test class via `@Testcontainers` + `@Container`.
+Integration tests are annotated with `@Tag("integration")` and excluded from the default `./mvnw test` run via the Surefire `excludedGroups` configuration. `GrpcServerIntegrationTest` exercises the gRPC layer end to end over an in-process transport, wiring the real use cases against the in-memory adapters — no external infrastructure required.
 
 ```java
-@Testcontainers
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-class PostgresUserRepositoryIT {
+@Tag("integration")
+class GrpcServerIntegrationTest {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
+    private static final String SERVER_NAME = "grpc-integration-" + UUID.randomUUID();
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+    private Server server;
+    private ManagedChannel channel;
+    private AuthServiceGrpc.AuthServiceBlockingStub authStub;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        UserRepository userRepository = new InMemoryUserRepository();
+        server = InProcessServerBuilder.forName(SERVER_NAME)
+            .directExecutor()
+            .addService(new AuthGrpcService(registerUseCase, loginUseCase, refreshUseCase, logoutUseCase, tokenService))
+            .build()
+            .start();
+
+        channel = InProcessChannelBuilder.forName(SERVER_NAME).directExecutor().build();
+        authStub = AuthServiceGrpc.newBlockingStub(channel);
     }
 
-    @Autowired PostgresUserRepository repository;
+    @AfterEach
+    void tearDown() {
+        channel.shutdownNow();
+        server.shutdownNow();
+    }
 
     @Test
-    @Transactional
-    void savesAndRetrievesUserByEmail() {
-        User user = UserFactory.create();
-        repository.save(user);
+    void registersAndAuthenticatesUserOverGrpc() {
+        authStub.register(RegisterRequest.newBuilder()
+            .setEmail("user@example.com")
+            .setPassword("a-strong-password")
+            .setName("Test User")
+            .build());
 
-        Optional<User> found = repository.findByEmail(user.email());
-        assertThat(found).isPresent();
-        assertThat(found.get().id()).isEqualTo(user.id());
+        AuthResponse response = authStub.login(LoginRequest.newBuilder()
+            .setEmail("user@example.com")
+            .setPassword("a-strong-password")
+            .build());
+
+        assertThat(response.getAccessToken()).isNotBlank();
     }
 }
 ```
 
----
-
-## Architecture Tests (ArchUnit)
-
-ArchUnit rules run as standard JUnit 5 tests and fail the build if any dependency rule is violated.
-
-```java
-@AnalyzeClasses(packages = "com.enterprise.boilerplate")
-class ArchitectureTest {
-
-    @ArchTest
-    static final ArchRule domainMustNotDependOnInfrastructure =
-        noClasses().that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat()
-            .resideInAnyPackage("..infrastructure..", "..interfaces..", "org.springframework..");
-
-    @ArchTest
-    static final ArchRule applicationMustNotDependOnInfrastructure =
-        noClasses().that().resideInAPackage("..application..")
-            .should().dependOnClassesThat()
-            .resideInAPackage("..infrastructure..");
-}
-```
+This in-process approach mirrors the bufconn/loopback pattern used by the Go and TypeScript boilerplates' gRPC integration suites — fast, deterministic, and free of Docker or network dependencies.
 
 ---
 
 ## TDD Workflow
 
 1. Write a failing test that describes the expected behavior
-2. Run `./gradlew test` — confirm it fails for the right reason
+2. Run `./mvnw test` — confirm it fails for the right reason
 3. Write the minimum implementation to make it pass
-4. Run `./gradlew test` — confirm green
+4. Run `./mvnw test` — confirm green
 5. Refactor under green
 
 Never write implementation code without a failing test first.
 
 ---
 
-## Coverage Target
+## Coverage Expectations
 
-| Layer | Target |
+| Layer | Expectation |
 |---|---|
-| Domain (entities + value objects) | 100% |
-| Application (use cases) | 100% |
-| Infrastructure adapters | 80%+ |
-| HTTP controllers | 70%+ (covered by integration tests) |
+| Domain (entities + value objects) | Every invariant covered, valid and invalid paths |
+| Application (use cases) | Every success and failure path covered with mocked ports |
+| Infrastructure adapters | Behavior verified against the port contract |
+| Interfaces (gRPC) | Covered end to end by `@Tag("integration")` suites |
 
-JaCoCo enforces minimum thresholds in `build.gradle.kts`. Builds fail if coverage drops below the defined limits.
+There is no enforced coverage threshold tool wired into the build — coverage is maintained through discipline and code review, consistent with the TDD workflow above.

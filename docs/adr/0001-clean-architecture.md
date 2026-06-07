@@ -18,14 +18,13 @@ The project adopts **Clean Architecture** in its Hexagonal / Ports & Adapters fo
 3. **infrastructure/** — adapters (JPA, Redis, BouncyCastle). Implements application ports.
 4. **interfaces/** — Spring MVC controllers, gRPC services. Calls application use cases.
 
-**ArchUnit** tests run on every build and fail if any class in `domain/` or `application/` imports from Spring, JPA, or infrastructure packages.
+The boundary is enforced through package conventions and code review: any pull request that introduces a Spring, JPA, or infrastructure import into `domain/` or `application/` is rejected.
 
 ## Consequences
 
 **Positive:**
 - Use cases are testable with Mockito mocks — no `@SpringBootTest` context required; tests start in milliseconds.
 - JPA entities are separate from domain entities — persistence concerns do not pollute the domain model.
-- ArchUnit makes the dependency rule machine-checkable — violations are build failures, not code review findings.
 
 **Negative:**
 - Two entity classes (domain + JPA) per aggregate — more code to maintain.

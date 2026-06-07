@@ -11,20 +11,20 @@ Spring Security supports both stateful sessions and stateless JWT. The choice af
 
 ## Decision
 
-Hybrid model: stateless JWT **RS256** access token (TTL 15 min) via `nimbus-jose-jwt` + opaque UUID refresh token stored in Redis (TTL 7 days, rotated on use, HttpOnly cookie).
+Hybrid model: stateless JWT **HS256** access token (TTL 15 min) via `jjwt` (`io.jsonwebtoken`) + opaque UUID refresh token stored in Redis (TTL 7 days, rotated on use, HttpOnly cookie).
 
-RS256 (asymmetric) is chosen over HS256 for Java because it allows token verification by other services without sharing the signing secret.
+HS256 (symmetric, HMAC-SHA256) keeps the boilerplate dependency-light and easy to configure via a single `JWT_SECRET` environment variable. Services that need to verify tokens without holding the signing secret can switch to an asymmetric algorithm (RS256/ES256) by changing the key material in `JwtTokenService` — the rest of the auth flow is unaffected.
 
 ## Consequences
 
 **Positive:**
-- Hot path requires no database lookup — RSA signature verification only.
+- Hot path requires no database lookup — HMAC signature verification only.
 - Sessions are revocable by evicting the Redis key.
-- RS256 allows resource servers to verify tokens using only the public key.
+- A single `JWT_SECRET` environment variable is the entire key management surface — no key pairs to generate, rotate, or distribute.
 - Spring Security's stateless session configuration (`SessionCreationPolicy.STATELESS`) aligns naturally.
 
 **Negative:**
-- RSA key pair management adds operational overhead compared to a shared HMAC secret.
+- The signing secret must be shared with every service that verifies tokens, widening the blast radius of a leak compared to an asymmetric scheme.
 - Access tokens cannot be revoked within their 15-minute window without a `jti` blocklist.
 
 ## Alternatives Considered
