@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.domain.entity;
 
+import com.enterprise.boilerplate.domain.exception.InvalidNameException;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
@@ -33,7 +34,7 @@ public final class User {
 
     public static User create(Email email, PasswordHash passwordHash, String name, Role role) {
         if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Name must not be blank");
+            throw new InvalidNameException();
         }
         Instant now = Instant.now();
         return new User(UserId.generate(), email, passwordHash, name.trim(), role, true, now, now);
@@ -47,7 +48,7 @@ public final class User {
 
     public void updateProfile(String newName) {
         if (newName == null || newName.isBlank()) {
-            throw new IllegalArgumentException("Name must not be blank");
+            throw new InvalidNameException();
         }
         this.name = newName.trim();
         this.updatedAt = Instant.now();

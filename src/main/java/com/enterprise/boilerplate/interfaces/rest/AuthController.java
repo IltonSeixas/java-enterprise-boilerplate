@@ -9,6 +9,7 @@ import com.enterprise.boilerplate.application.usecase.LogoutUseCase;
 import com.enterprise.boilerplate.application.usecase.RefreshTokenUseCase;
 import com.enterprise.boilerplate.application.usecase.RegisterUserUseCase;
 import com.enterprise.boilerplate.application.dto.RefreshTokenRequest;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;

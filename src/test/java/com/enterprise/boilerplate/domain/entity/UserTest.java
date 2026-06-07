@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.domain.entity;
 
+import com.enterprise.boilerplate.domain.exception.InvalidNameException;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
 import org.junit.jupiter.api.Test;
@@ -28,9 +29,9 @@ class UserTest {
     }
 
     @Test
-    void create_withBlankName_throwsIllegalArgumentException() {
+    void create_withBlankName_throwsInvalidNameException() {
         assertThatThrownBy(() -> User.create(EMAIL, HASH, "  ", User.Role.USER))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidNameException.class)
                 .hasMessageContaining("Name must not be blank");
     }
 
@@ -46,11 +47,11 @@ class UserTest {
     }
 
     @Test
-    void updateProfile_withBlankName_throwsIllegalArgumentException() {
+    void updateProfile_withBlankName_throwsInvalidNameException() {
         User user = User.create(EMAIL, HASH, "Alice", User.Role.USER);
 
         assertThatThrownBy(() -> user.updateProfile(""))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidNameException.class)
                 .hasMessageContaining("Name must not be blank");
     }
 
