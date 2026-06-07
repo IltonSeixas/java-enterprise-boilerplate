@@ -143,6 +143,9 @@ The `PasswordHasher` output port in `application/port/out/` abstracts the algori
 | `POST` | `/api/v1/auth/refresh` | Rotate refresh token |
 | `POST` | `/api/v1/auth/logout` | Revoke refresh token |
 | `GET` | `/api/v1/users/me` | Get authenticated user profile |
+| `PUT` | `/api/v1/users/me` | Update authenticated user profile |
+| `PUT` | `/api/v1/users/me/password` | Change authenticated user password |
+| `GET` | `/api/v1/users/{id}` | Get a user by id |
 | `GET` | `/actuator/health` | Health check (Spring Actuator) |
 | `GET` | `/actuator/prometheus` | Prometheus metrics |
 
@@ -157,9 +160,9 @@ Proto definitions in `src/main/proto/boilerplate.proto`. Stubs are generated aut
 | `AuthService` | `RefreshToken` | `POST /api/v1/auth/refresh` |
 | `AuthService` | `Logout` | `POST /api/v1/auth/logout` |
 | `UserService` | `GetMe` | `GET /api/v1/users/me` |
-| `UserService` | `GetUser` | — (privileged lookup of another user's profile) |
-| `UserService` | `UpdateProfile` | `PATCH /api/v1/users/me` |
-| `UserService` | `ChangePassword` | `POST /api/v1/users/me/password` |
+| `UserService` | `GetUser` | `GET /api/v1/users/{id}` |
+| `UserService` | `UpdateProfile` | `PUT /api/v1/users/me` |
+| `UserService` | `ChangePassword` | `PUT /api/v1/users/me/password` |
 
 - **Authentication**: `UserService` calls require an `authorization: Bearer <access-token>` request metadata entry. A global server interceptor validates the token, confirms the account is active, and exposes the caller through a `Context` key — mirroring the REST `JwtAuthenticationFilter`'s active-account check.
 - **Error mapping**: domain exceptions are translated to gRPC status codes (`INVALID_ARGUMENT`, `ALREADY_EXISTS`, `NOT_FOUND`, `UNAUTHENTICATED`, `PERMISSION_DENIED`, `INTERNAL`) so clients receive the same semantics as REST responses, expressed idiomatically for gRPC.
@@ -223,12 +226,14 @@ All configuration via `application.yml` and environment variable overrides (Spri
 |---|---|---|
 | `SERVER_PORT` | `3000` | HTTP port |
 | `GRPC_PORT` | `50051` | gRPC port |
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/boilerplate` | JDBC PostgreSQL URL |
+| `SPRING_PROFILES_ACTIVE` | `inmemory` | Persistence profile: `inmemory` or `postgres` |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/boilerplate` | JDBC PostgreSQL URL — only read on the `postgres` profile |
 | `SPRING_DATA_REDIS_URL` | `redis://localhost:6379` | Redis connection URL |
 | `JWT_SECRET` | — | HMAC-SHA256 (HS256) signing secret, minimum 32 characters |
 | `JWT_ACCESS_EXPIRY_MINUTES` | `15` | Access token TTL (minutes) |
 | `JWT_REFRESH_EXPIRY_DAYS` | `7` | Refresh token TTL (days) |
-| `ADAPTER` | `memory` | Persistence adapter: `memory` or `postgres` |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:5173` | Comma-separated CORS allow-list |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318/v1/traces` | OTLP HTTP traces endpoint (Spring Boot Actuator) |
 
 ---
 
@@ -264,7 +269,7 @@ The OWASP Dependency-Check Maven plugin runs on every push to detect known CVEs 
 
 ## Plugging in a Real Database
 
-Implement the `UserRepository` interface from `domain/repository/` and annotate your adapter with `@Profile("postgres")`. The in-memory adapter is `@Profile("default")`. Switch profiles via `SPRING_PROFILES_ACTIVE=postgres`.
+Implement the `UserRepository` interface from `domain/repository/` and annotate your adapter with `@Profile("postgres")`. The in-memory adapter is `@Profile("inmemory")` (the active profile by default — see `SPRING_PROFILES_ACTIVE`). Switch profiles via `SPRING_PROFILES_ACTIVE=postgres`.
 
 Place Flyway migration scripts (`V1__init.sql`, `V2__...`, etc.) in `src/main/resources/db/migration/` — Flyway runs them automatically on startup when the `postgres` profile is active.
 
