@@ -7,39 +7,27 @@ Contributions are welcome. Please read this document before opening a pull reque
 ## Prerequisites
 
 - Java 21+ (recommended: install via [SDKMAN](https://sdkman.io/): `sdk install java 21-tem`)
-- Docker (for integration tests via Testcontainers)
+- No local Maven installation required — use the bundled `./mvnw` wrapper
 
 ---
 
 ## Development Workflow
 
 ```bash
-# Build (skipping tests)
-./gradlew build -x test
-
 # Compile only
-./gradlew compileJava
+./mvnw compile test-compile
 
-# Run all unit tests
-./gradlew test
+# Run unit tests
+./mvnw test
 
-# Run architecture tests
-./gradlew test --tests "com.enterprise.boilerplate.ArchitectureTest"
+# Run integration tests (tagged with @Tag("integration"))
+./mvnw test -Dgroups=integration -DexcludedGroups=
 
-# Run integration tests (requires Docker)
-./gradlew test -Pintegration
-
-# Coverage report
-./gradlew jacocoTestReport
+# Package the application (skipping tests)
+./mvnw package -DskipTests
 
 # Dependency vulnerability check
-./gradlew dependencyCheckAnalyze
-
-# Check formatting (Spotless)
-./gradlew spotlessCheck
-
-# Apply formatting
-./gradlew spotlessApply
+./mvnw org.owasp:dependency-check-maven:check
 ```
 
 All of the above run automatically in CI on every pull request. A PR will not be merged if any of these steps fail.
@@ -51,14 +39,12 @@ All of the above run automatically in CI on every pull request. A PR will not be
 ### Architecture
 
 - Never import Spring, JPA, or any infrastructure class from `domain/` or `application/`
-- This rule is enforced by ArchUnit — violations fail the build automatically
 - Every new use case must have a corresponding `*Test.java` file
 - Every new value object must validate its invariants in the constructor and have tests for both valid and invalid inputs
 
 ### Style
 
-- Code formatting via **Spotless** with Google Java Format — run `./gradlew spotlessApply` before committing
-- No raw `System.out.println` — use `SLF4J` via `@Slf4j`
+- No raw `System.out.println` — use `SLF4J` via the standard `LoggerFactory.getLogger(...)`
 - No checked exceptions in domain or application layers — use sealed exception hierarchies
 - No comments that explain *what* the code does — only *why* when non-obvious
 - Prefer Java Records for DTOs and value objects where applicable
@@ -67,7 +53,7 @@ All of the above run automatically in CI on every pull request. A PR will not be
 
 - New behavior requires a test written first (TDD)
 - Mock repositories and ports via Mockito — never load a Spring context in unit tests
-- Integration tests must be annotated with `@Transactional` or clean up their own data
+- Integration tests must be annotated with `@Tag("integration")` and clean up their own data
 
 ---
 

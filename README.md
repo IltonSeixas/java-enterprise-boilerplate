@@ -54,7 +54,7 @@ interfaces/ → application/ → domain/
 infrastructure/ → application/ → domain/
 ```
 
-The `domain/` and `application/` packages never import from Spring, JPA, or any infrastructure library. This is enforced via ArchUnit tests in the CI pipeline.
+The `domain/` and `application/` packages never import from Spring, JPA, or any infrastructure library. This boundary is enforced through package conventions and code review — see [contributing.md](docs/contributing.md).
 
 ---
 
@@ -68,13 +68,12 @@ The `domain/` and `application/` packages never import from Spring, JPA, or any 
 | gRPC | `grpc-server-spring-boot-starter` (`net.devh`) + `protobuf-maven-plugin` |
 | Database (production) | `Spring Data JPA` + `Hibernate 6` + `Flyway` |
 | Password hashing | `Spring Security Crypto` (Argon2id via BouncyCastle) |
-| JWT | `nimbus-jose-jwt` |
+| JWT | `jjwt` (`io.jsonwebtoken`) |
 | Validation | `Jakarta Bean Validation` + `Hibernate Validator` |
 | Observability | `Micrometer` + `OpenTelemetry` + `Micrometer Tracing` |
-| Structured logging | `Logback` + `logstash-logback-encoder` |
-| Testing | `JUnit 5` + `Mockito` + `AssertJ` + `Testcontainers` |
-| Architecture tests | `ArchUnit` |
-| Build | `Gradle 8` (Kotlin DSL) |
+| Structured logging | `Logback` |
+| Testing | `JUnit 5` + `Mockito` + `AssertJ` |
+| Build | `Maven` (with `mvnw` wrapper) |
 
 ---
 
@@ -90,7 +89,7 @@ The `domain/` and `application/` packages never import from Spring, JPA, or any 
 ```bash
 git clone https://github.com/your-org/java-enterprise-boilerplate
 cd java-enterprise-boilerplate
-./gradlew bootRun
+./mvnw spring-boot:run
 ```
 
 The server starts on `http://localhost:3000`. No database required.
@@ -98,10 +97,10 @@ The server starts on `http://localhost:3000`. No database required.
 ### Run with PostgreSQL
 
 ```bash
-cp src/main/resources/application.example.yml src/main/resources/application-local.yml
-# Edit application-local.yml: set datasource, redis, jwt config
+cp .env.example .env
+# Edit .env: set SPRING_DATASOURCE_*, REDIS_*, JWT_SECRET, etc.
 
-./gradlew bootRun --args='--spring.profiles.active=local,postgres'
+SPRING_PROFILES_ACTIVE=postgres ./mvnw spring-boot:run
 ```
 
 ---
@@ -120,14 +119,13 @@ The `PasswordHasher` output port in `application/port/out/` abstracts the algori
 
 ### Authentication Flow
 
-- **Access token**: JWT signed with RS256 (asymmetric), TTL 15 min
+- **Access token**: JWT signed with HS256 (HMAC-SHA256), TTL 15 min
 - **Refresh token**: opaque UUID, stored in Redis with TTL 7 days, rotated on every use, delivered via HttpOnly cookie
 - **Revocation**: evicting the Redis entry immediately invalidates the session
 - **RBAC**: enforced via Spring Security method security (`@PreAuthorize`) at the use case boundary
 
 ### Security (Spring Security + custom filters)
 
-- Rate limiting: Bucket4j sliding window per IP, backed by Redis
 - Security headers: configured via `HttpSecurity` — CSP, HSTS, X-Frame-Options, X-Content-Type-Options
 - CORS: explicit allow-list, never `*` in production
 - Input validation: Jakarta Bean Validation on all DTOs — invalid input returns 400 before reaching the use case
@@ -172,16 +170,14 @@ Proto definitions in `src/main/proto/boilerplate.proto`. Stubs are generated aut
 ## Testing
 
 ```bash
-./gradlew test                    # unit tests (no external deps, uses in-memory adapter)
-./gradlew test -Pintegration      # integration tests (Testcontainers — requires Docker)
-./gradlew jacocoTestReport        # coverage report (target: 80%+ on domain + application)
+./mvnw test                                   # unit tests (no external deps, uses in-memory adapter)
+./mvnw test -Dgroups=integration -DexcludedGroups=  # integration tests (boots the real gRPC server)
 ```
 
 ### Structure
 
-- **Unit tests**: `src/test/java/**/*Test.java`. Domain entities, value objects, and use cases tested with JUnit 5 and Mockito. Repository mocks are generated from port interfaces — no Spring context needed.
-- **Integration tests**: `src/test/java/**/*IT.java`. Full Spring context with Testcontainers (PostgreSQL, Redis) spun up automatically.
-- **Architecture tests**: `src/test/java/**/ArchitectureTest.java`. ArchUnit rules enforce the dependency rule at compile/test time — the build fails if any domain class imports a Spring annotation.
+- **Unit tests**: `src/test/java/**/*Test.java`. Domain entities, value objects, and use cases tested with JUnit 5, Mockito, and AssertJ. Repository test doubles are plain Java classes implementing the port interface — no Spring context needed.
+- **Integration tests**: tagged with `@Tag("integration")` (e.g. `GrpcServerIntegrationTest`) and excluded from the default `mvn test` run via the Surefire `excludedGroups` configuration in `pom.xml`. They boot the real gRPC server wired with in-memory adapters and drive it through actual gRPC clients — no external infrastructure required.
 
 ### TDD Approach
 
@@ -227,12 +223,11 @@ All configuration via `application.yml` and environment variable overrides (Spri
 |---|---|---|
 | `SERVER_PORT` | `3000` | HTTP port |
 | `GRPC_PORT` | `50051` | gRPC port |
-| `SPRING_DATASOURCE_URL` | — | JDBC PostgreSQL URL |
-| `SPRING_DATA_REDIS_URL` | — | Redis URL |
-| `JWT_SECRET` | — | RSA private key path or inline PEM |
-| `JWT_ACCESS_TTL` | `900` | Access token TTL (seconds) |
-| `JWT_REFRESH_TTL` | `604800` | Refresh token TTL (seconds) |
-| `RATE_LIMIT_RPS` | `100` | Max requests/sec per IP |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/boilerplate` | JDBC PostgreSQL URL |
+| `SPRING_DATA_REDIS_URL` | `redis://localhost:6379` | Redis connection URL |
+| `JWT_SECRET` | — | HMAC-SHA256 (HS256) signing secret, minimum 32 characters |
+| `JWT_ACCESS_EXPIRY_MINUTES` | `15` | Access token TTL (minutes) |
+| `JWT_REFRESH_EXPIRY_DAYS` | `7` | Refresh token TTL (days) |
 | `ADAPTER` | `memory` | Persistence adapter: `memory` or `postgres` |
 
 ---
@@ -240,7 +235,7 @@ All configuration via `application.yml` and environment variable overrides (Spri
 ## Docker
 
 ```bash
-# Multi-stage build — GraalVM Native Image option available
+# Multi-stage build — Maven build stage + slim JRE Alpine runtime image
 docker build -t java-enterprise-boilerplate .
 
 docker run -p 3000:3000 -p 50051:50051 --env-file .env java-enterprise-boilerplate
@@ -251,15 +246,6 @@ docker run -p 3000:3000 -p 50051:50051 --env-file .env java-enterprise-boilerpla
 docker compose up
 ```
 
-### Native Image (optional)
-
-Compile to a native binary with GraalVM for sub-100ms startup:
-
-```bash
-./gradlew nativeCompile
-./build/native/nativeCompile/boilerplate
-```
-
 ---
 
 ## CI/CD
@@ -268,11 +254,11 @@ GitHub Actions pipelines in `.github/workflows/`:
 
 | Workflow | Trigger | Steps |
 |---|---|---|
-| `ci.yml` | push / PR | compile, test (unit + arch), dependency-check |
+| `ci.yml` | push / PR | compile, unit tests, dependency vulnerability check |
 | `docker.yml` | push to `main` | build + push to GHCR |
-| `release.yml` | tag `v*` | build JAR + native image, create GitHub Release |
+| `release.yml` | tag `v*` | build JAR, create GitHub Release, build + push release image |
 
-OWASP Dependency-Check runs on every push to detect known CVEs in Maven/Gradle dependencies.
+The OWASP Dependency-Check Maven plugin runs on every push to detect known CVEs in dependencies.
 
 ---
 
@@ -280,7 +266,7 @@ OWASP Dependency-Check runs on every push to detect known CVEs in Maven/Gradle d
 
 Implement the `UserRepository` interface from `domain/repository/` and annotate your adapter with `@Profile("postgres")`. The in-memory adapter is `@Profile("default")`. Switch profiles via `SPRING_PROFILES_ACTIVE=postgres`.
 
-Flyway migrations live in `src/main/resources/db/migration/` — run automatically on startup when the `postgres` profile is active.
+Place Flyway migration scripts (`V1__init.sql`, `V2__...`, etc.) in `src/main/resources/db/migration/` — Flyway runs them automatically on startup when the `postgres` profile is active.
 
 ---
 

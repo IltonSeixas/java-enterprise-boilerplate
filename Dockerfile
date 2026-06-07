@@ -3,15 +3,13 @@ FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
-COPY gradlew ./
-COPY gradle ./gradle
-RUN ./gradlew --version
+RUN apk add --no-cache maven
 
-COPY build.gradle.kts settings.gradle.kts ./
-RUN ./gradlew dependencies --no-daemon -q
+COPY pom.xml ./
+RUN mvn dependency:go-offline -B -q
 
 COPY src ./src
-RUN ./gradlew bootJar --no-daemon -x test
+RUN mvn package -DskipTests -B -q
 
 # Stage 2: runtime
 FROM eclipse-temurin:21-jre-alpine AS runtime
@@ -21,7 +19,7 @@ RUN addgroup --system --gid 1001 app \
 
 WORKDIR /app
 
-COPY --from=builder /app/build/libs/*.jar app.jar
+COPY --from=builder /app/target/*.jar app.jar
 
 USER app
 

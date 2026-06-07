@@ -2,15 +2,13 @@
 
 All configuration is managed via Spring Boot's externalized configuration mechanism. Properties are read from `application.yml` and overridden by environment variables using Spring's relaxed binding (e.g., `JWT_SECRET` overrides `jwt.secret`).
 
-The application fails fast with a clear error message if any required property is missing — enforced via `@ConfigurationProperties` with `@Validated`.
-
-A `application.example.yml` file in `src/main/resources/` lists every property. Copy it for local development:
+`.env.example` in the project root lists every variable read by `application.yml`. Copy it for local development:
 
 ```bash
-cp src/main/resources/application.example.yml src/main/resources/application-local.yml
+cp .env.example .env
 ```
 
-Activate with: `--spring.profiles.active=local`
+Activate the PostgreSQL profile with: `SPRING_PROFILES_ACTIVE=postgres`
 
 ---
 
@@ -28,42 +26,40 @@ Activate with: `--spring.profiles.active=local`
 | Property / Env Var | Required | Default | Description |
 |---|---|---|---|
 | `ADAPTER` | No | `memory` | Persistence adapter: `memory` or `postgres` |
-| `SPRING_DATASOURCE_URL` | If `postgres` | — | JDBC PostgreSQL URL |
-| `SPRING_DATASOURCE_USERNAME` | If `postgres` | — | Database user |
-| `SPRING_DATASOURCE_PASSWORD` | If `postgres` | — | Database password |
-| `SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE` | No | `10` | HikariCP max pool size |
-| `SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE` | No | `2` | HikariCP min idle connections |
+| `SPRING_PROFILES_ACTIVE` | No | `inmemory` | Active Spring profile: `inmemory` or `postgres` |
+| `SPRING_DATASOURCE_URL` | If `postgres` | `jdbc:postgresql://localhost:5432/boilerplate` | JDBC PostgreSQL URL |
+| `SPRING_DATASOURCE_USERNAME` | If `postgres` | `boilerplate` | Database user |
+| `SPRING_DATASOURCE_PASSWORD` | If `postgres` | `boilerplate` | Database password |
+| `DB_POOL_SIZE` | No | `10` | HikariCP maximum pool size |
 
 ### Cache
 
 | Property / Env Var | Required | Default | Description |
 |---|---|---|---|
-| `SPRING_DATA_REDIS_URL` | If `postgres` | — | Redis connection URL |
+| `SPRING_DATA_REDIS_URL` | No | `redis://localhost:6379` | Redis connection URL (refresh token storage) |
 
 ### Authentication
 
 | Property / Env Var | Required | Default | Description |
 |---|---|---|---|
-| `JWT_SECRET` | Yes | — | RSA private key path or inline PEM — never a shared secret |
-| `JWT_PUBLIC_KEY` | Yes | — | RSA public key path or inline PEM |
-| `JWT_ACCESS_TTL` | No | `900` | Access token TTL in seconds (15 min) |
-| `JWT_REFRESH_TTL` | No | `604800` | Refresh token TTL in seconds (7 days) |
+| `JWT_SECRET` | Yes (production) | — | HMAC-SHA256 (HS256) signing secret — minimum 32 characters, never shared across environments |
+| `JWT_ACCESS_EXPIRY_MINUTES` | No | `15` | Access token TTL in minutes |
+| `JWT_REFRESH_EXPIRY_DAYS` | No | `7` | Refresh token TTL in days |
 
 ### Security
 
 | Property / Env Var | Required | Default | Description |
 |---|---|---|---|
-| `ALLOWED_ORIGINS` | No | `http://localhost:*` | Comma-separated CORS allowed origins |
-| `RATE_LIMIT_RPS` | No | `100` | Max requests per second per IP |
+| `CORS_ALLOWED_ORIGINS` | No | `http://localhost:3000,http://localhost:5173` | Comma-separated CORS allowed origins |
 
 ### Observability
 
 | Property / Env Var | Required | Default | Description |
 |---|---|---|---|
 | `LOGGING_LEVEL_ROOT` | No | `INFO` | Root log level |
-| `MANAGEMENT_TRACING_SAMPLING_PROBABILITY` | No | `1.0` | Trace sampling rate (lower in production) |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | No | `http://localhost:4318/v1/traces` | OTLP HTTP endpoint |
-| `OTEL_SERVICE_NAME` | No | `java-enterprise-boilerplate` | Service name in traces |
+| `LOGGING_LEVEL_APP` | No | `INFO` | Log level for `com.enterprise.boilerplate` |
+| `OTEL_SAMPLING_PROBABILITY` | No | `1.0` | Trace sampling rate (lower in production) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | No | `http://localhost:4318/v1/traces` | OTLP HTTP traces endpoint |
 
 ### Spring Boot Actuator
 
@@ -78,11 +74,11 @@ Activate with: `--spring.profiles.active=local`
 
 Before deploying to production:
 
-- [ ] `JWT_SECRET` and `JWT_PUBLIC_KEY` are generated RSA key pairs — never shared across environments
+- [ ] `JWT_SECRET` is a long, randomly generated value (minimum 32 characters) — never shared across environments
 - [ ] `SPRING_DATASOURCE_URL` uses a TLS JDBC URL (`?ssl=true&sslmode=require`)
 - [ ] `SPRING_DATASOURCE_PASSWORD` is injected via a secrets manager
 - [ ] `SPRING_DATA_REDIS_URL` uses a password-protected Redis instance
-- [ ] `ALLOWED_ORIGINS` lists only your actual frontend domains
+- [ ] `CORS_ALLOWED_ORIGINS` lists only your actual frontend domains
 - [ ] `LOGGING_LEVEL_ROOT` is `INFO` or `WARN` — never `DEBUG` or `TRACE`
 - [ ] `spring.jpa.show-sql` is `false` (default) — never `true` in production
 - [ ] `management.endpoint.health.show-details` is `never` in production

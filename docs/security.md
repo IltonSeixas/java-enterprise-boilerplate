@@ -44,9 +44,9 @@ A cryptographically random 16-byte salt is generated per-hash via `SecureRandom`
 
 ## Authentication
 
-### Access Token (JWT RS256)
+### Access Token (JWT HS256)
 
-- Algorithm: RS256 (RSA-SHA256) via `nimbus-jose-jwt`
+- Algorithm: HS256 (HMAC-SHA256) via `jjwt` (`io.jsonwebtoken`)
 - TTL: 15 minutes
 - Claims: `sub` (user ID), `iat`, `exp`, `jti` (unique token ID), `roles`
 - Storage: in-memory on the client — never in `localStorage` or cookies
@@ -68,16 +68,9 @@ Access tokens cannot be revoked before expiry (stateless by design). The 15-minu
 
 ## Rate Limiting
 
-Implemented via **Bucket4j** using a sliding window algorithm per IP address backed by Redis.
+This boilerplate does not ship an in-process rate limiter. In production, place the application behind an edge layer (API gateway, reverse proxy, or CDN) that enforces per-IP and per-account request limits — particularly on authentication endpoints, to mitigate credential stuffing and brute-force attacks.
 
-```
-Default: 100 requests / 60 seconds per IP
-Configurable via: RATE_LIMIT_RPS environment variable
-```
-
-Authentication endpoints have a stricter independent limit to mitigate credential stuffing.
-
-On limit exceeded, the server returns `429 Too Many Requests` with a `Retry-After` header.
+On limit exceeded, the edge layer should return `429 Too Many Requests` with a `Retry-After` header.
 
 ---
 
@@ -151,7 +144,7 @@ Optional<UserJpaEntity> findByEmail(@Param("email") String email);
 OWASP Dependency-Check runs on every CI push against the National Vulnerability Database.
 
 ```bash
-./gradlew dependencyCheckAnalyze
+./mvnw org.owasp:dependency-check-maven:check
 ```
 
 Review the generated HTML report. Every transitive dependency is a potential attack surface. Pin or exclude affected artifacts when CVEs are found.

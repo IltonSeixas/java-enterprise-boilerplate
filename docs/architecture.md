@@ -24,7 +24,7 @@ This project implements Clean Architecture (also known as Hexagonal Architecture
 └──────────────────────────┴──────────────────────────────────┘
 ```
 
-**Dependency rule:** source code dependencies point inward only. The domain knows nothing about the layers outside it. This is enforced automatically by ArchUnit tests on every build.
+**Dependency rule:** source code dependencies point inward only. The domain knows nothing about the layers outside it. This boundary is enforced through package conventions and code review — see [Architecture Enforcement](#architecture-enforcement).
 
 ---
 
@@ -169,15 +169,6 @@ The in-memory adapter uses `ConcurrentHashMap` and is production-equivalent for 
 
 ---
 
-## Architecture Enforcement (ArchUnit)
+## Architecture Enforcement
 
-`ArchitectureTest.java` runs on every build and fails if the dependency rules are violated:
-
-```java
-noClasses().that().resideInAPackage("..domain..")
-    .should().dependOnClassesThat()
-    .resideInAnyPackage("..infrastructure..", "..interfaces..", "org.springframework..")
-    .check(importedClasses);
-```
-
-This makes architectural drift a compile-time (test-time) failure, not a code review finding.
+The dependency rule — domain and application code must never import Spring, JPA, gRPC, or any other infrastructure concern — is enforced through code review and package boundaries rather than an automated architecture-test tool. Keeping `domain/` and `application/` free of framework imports is a non-negotiable contribution standard (see [contributing.md](contributing.md)); any pull request that violates it is rejected at review time.

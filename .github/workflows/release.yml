@@ -20,13 +20,13 @@ jobs:
         with:
           java-version: "21"
           distribution: temurin
-          cache: gradle
+          cache: maven
 
       - name: Build JAR
-        run: ./gradlew bootJar -x test
+        run: ./mvnw package -DskipTests -B
 
       - name: Rename artifact
-        run: mv build/libs/*.jar boilerplate-${{ github.ref_name }}.jar
+        run: mv target/*.jar boilerplate-${{ github.ref_name }}.jar
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
