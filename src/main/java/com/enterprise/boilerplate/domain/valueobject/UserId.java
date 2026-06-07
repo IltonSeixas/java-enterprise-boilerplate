@@ -1,12 +1,14 @@
 package com.enterprise.boilerplate.domain.valueobject;
 
+import com.enterprise.boilerplate.domain.exception.InvalidUserIdException;
+
 import java.util.UUID;
 
 public record UserId(UUID value) {
 
     public UserId {
         if (value == null) {
-            throw new IllegalArgumentException("UserId value must not be null");
+            throw new InvalidUserIdException("null");
         }
     }
 
@@ -18,7 +20,7 @@ public record UserId(UUID value) {
         try {
             return new UserId(UUID.fromString(id));
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid UserId format: " + id, e);
+            throw new InvalidUserIdException(id);
         }
     }
 

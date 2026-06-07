@@ -4,6 +4,8 @@ public sealed class DomainException extends RuntimeException
         permits InvalidEmailException,
                 UserAlreadyExistsException,
                 InvalidPasswordException,
+                InvalidNameException,
+                InvalidUserIdException,
                 UserNotFoundException,
                 InvalidTokenException,
                 InactiveUserException,

@@ -44,7 +44,7 @@ src/main/java/com/enterprise/boilerplate/
 │
 └── interfaces/           # Entry points
     ├── rest/             # Spring MVC controllers, exception handlers
-    └── grpc/             # grpc-spring-boot-starter service implementations
+    └── grpc/             # gRPC service implementations, auth interceptor, error mapping
 ```
 
 ### Dependency rule
@@ -65,7 +65,7 @@ The `domain/` and `application/` packages never import from Spring, JPA, or any 
 | Framework | `Spring Boot 3.x` |
 | Concurrency | `Project Loom` — Virtual Threads (JDK 21) |
 | HTTP | `Spring MVC` (blocking, Tomcat with Virtual Threads) |
-| gRPC | `grpc-spring-boot-starter` |
+| gRPC | `grpc-server-spring-boot-starter` (`net.devh`) + `protobuf-maven-plugin` |
 | Database (production) | `Spring Data JPA` + `Hibernate 6` + `Flyway` |
 | Password hashing | `Spring Security Crypto` (Argon2id via BouncyCastle) |
 | JWT | `nimbus-jose-jwt` |
@@ -150,11 +150,22 @@ The `PasswordHasher` output port in `application/port/out/` abstracts the algori
 
 ### gRPC — `localhost:50051`
 
-Proto definitions in `src/main/proto/`. Regenerate Java stubs with:
+Proto definitions in `src/main/proto/boilerplate.proto`. Stubs are generated automatically at build time by the `protobuf-maven-plugin` — no manual step required. Each RPC mirrors a REST endpoint and delegates to the same use case classes, so business rules live in exactly one place.
 
-```bash
-./gradlew generateProto
-```
+| Service | RPC | Equivalent REST endpoint |
+|---|---|---|
+| `AuthService` | `Register` | `POST /api/v1/auth/register` |
+| `AuthService` | `Login` | `POST /api/v1/auth/login` |
+| `AuthService` | `RefreshToken` | `POST /api/v1/auth/refresh` |
+| `AuthService` | `Logout` | `POST /api/v1/auth/logout` |
+| `UserService` | `GetMe` | `GET /api/v1/users/me` |
+| `UserService` | `GetUser` | — (privileged lookup of another user's profile) |
+| `UserService` | `UpdateProfile` | `PATCH /api/v1/users/me` |
+| `UserService` | `ChangePassword` | `POST /api/v1/users/me/password` |
+
+- **Authentication**: `UserService` calls require an `authorization: Bearer <access-token>` request metadata entry. A global server interceptor validates the token, confirms the account is active, and exposes the caller through a `Context` key — mirroring the REST `JwtAuthenticationFilter`'s active-account check.
+- **Error mapping**: domain exceptions are translated to gRPC status codes (`INVALID_ARGUMENT`, `ALREADY_EXISTS`, `NOT_FOUND`, `UNAUTHENTICATED`, `PERMISSION_DENIED`, `INTERNAL`) so clients receive the same semantics as REST responses, expressed idiomatically for gRPC.
+- **Reflection**: `grpc-services` exposes server reflection, so the API can be explored with `grpcurl` or any reflection-aware client without shipping `.proto` files separately.
 
 ---
 

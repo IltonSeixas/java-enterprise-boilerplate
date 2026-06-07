@@ -39,6 +39,10 @@ management:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
+grpc:
+  server:
+    port: ${GRPC_PORT:50051}
+
 jwt:
   secret: ${JWT_SECRET:change-this-secret-in-production-min-32-chars!!}
   access-token-expiry-minutes: ${JWT_ACCESS_EXPIRY_MINUTES:15}

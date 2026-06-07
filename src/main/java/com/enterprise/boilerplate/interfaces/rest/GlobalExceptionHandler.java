@@ -2,7 +2,9 @@ package com.enterprise.boilerplate.interfaces.rest;
 
 import com.enterprise.boilerplate.domain.exception.ForbiddenException;
 import com.enterprise.boilerplate.domain.exception.InactiveUserException;
+import com.enterprise.boilerplate.domain.exception.InvalidNameException;
 import com.enterprise.boilerplate.domain.exception.InvalidTokenException;
+import com.enterprise.boilerplate.domain.exception.InvalidUserIdException;
 import com.enterprise.boilerplate.domain.exception.UserAlreadyExistsException;
 import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
 import org.slf4j.Logger;
@@ -55,6 +57,20 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleInvalidToken(InvalidTokenException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
         problem.setType(URI.create("https://errors.enterprise.com/invalid-token"));
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidNameException.class)
+    public ProblemDetail handleInvalidName(InvalidNameException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setType(URI.create("https://errors.enterprise.com/invalid-name"));
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidUserIdException.class)
+    public ProblemDetail handleInvalidUserId(InvalidUserIdException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setType(URI.create("https://errors.enterprise.com/invalid-user-id"));
         return problem;
     }
 
