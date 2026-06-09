@@ -13,7 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 - In-memory user repository adapter (zero-config default)
 - Argon2id password hashing computed directly via BouncyCastle's `Argon2BytesGenerator`, behind a `PasswordHasherPort` abstraction
 - JWT HS256 access token (returned in the response body) + opaque refresh token delivered as an HttpOnly/Secure/SameSite=Strict cookie, rotated and stored server-side in Redis
-- Spring MVC HTTP server with security filters (CORS allow-list, security headers, JWT authentication)
+- Spring MVC HTTP server with security filters (CORS allow-list, security headers, JWT authentication, in-process per-IP rate limiter on auth endpoints via `AuthRateLimitFilter`)
 - gRPC server via `net.devh:grpc-spring-boot-starter`
 - Micrometer tracing (OpenTelemetry OTLP bridge) and Prometheus metrics through Spring Boot Actuator
 - PostgreSQL adapter via Spring Data JPA + Flyway migrations
