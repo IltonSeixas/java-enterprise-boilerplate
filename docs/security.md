@@ -67,9 +67,17 @@ Access tokens cannot be revoked before expiry (stateless by design). The 15-minu
 
 ## Rate Limiting
 
-This boilerplate does not ship an in-process rate limiter. In production, place the application behind an edge layer (API gateway, reverse proxy, or CDN) that enforces per-IP and per-account request limits — particularly on authentication endpoints, to mitigate credential stuffing and brute-force attacks.
+Authentication endpoints are protected by an in-process per-IP rate limiter implemented in `AuthRateLimitFilter` (a `@Component`/`OncePerRequestFilter` with `@Order(1)`). It applies to every path under `/api/v1/auth`.
 
-On limit exceeded, the edge layer should return `429 Too Many Requests` with a `Retry-After` header.
+```
+Auth endpoints: 10 requests / 60 seconds per IP
+```
+
+The limiter uses a fixed-window counter per IP stored in a `ConcurrentHashMap`. The window resets after 60 seconds from the first request in that window. On limit exceeded, the filter short-circuits the chain and returns `429 Too Many Requests` before Spring Security processes the request.
+
+`X-Forwarded-For` is respected so the real client IP is used when the application runs behind a reverse proxy.
+
+For all other paths, rate limiting is delegated to the edge layer (API gateway, reverse proxy, or CDN) — the in-process limiter is scoped to auth to mitigate credential stuffing and brute-force attacks without introducing a broad dependency.
 
 ---
 
