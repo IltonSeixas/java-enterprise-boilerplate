@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -13,6 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Component
 @Order(1)
@@ -20,23 +22,36 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
 
     private static final int MAX_REQUESTS = 10;
     private static final long WINDOW_MILLIS = 60_000L;
-    private static final String AUTH_PREFIX = "/api/v1/auth";
+    private static final long SWEEP_INTERVAL_MILLIS = 5 * WINDOW_MILLIS;
+    private static final int MAX_TRACKED_CLIENTS = 100_000;
+    private static final String AUTH_PATH_PREFIX = "/api/v1/auth";
+
+    private final boolean trustForwardedHeaders;
 
     private record Window(AtomicInteger count, long windowStart) {}
 
     private final ConcurrentHashMap<String, Window> windows = new ConcurrentHashMap<>();
+    private final AtomicLong lastSweep = new AtomicLong(System.currentTimeMillis());
+
+    public AuthRateLimitFilter(
+            @Value("${app.rate-limit.trust-forwarded-headers:false}") boolean trustForwardedHeaders) {
+        this.trustForwardedHeaders = trustForwardedHeaders;
+    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !request.getRequestURI().startsWith(AUTH_PREFIX);
+        String path = request.getServletPath();
+        return !path.startsWith(AUTH_PATH_PREFIX);
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        String ip = resolveClientIp(request);
         long now = System.currentTimeMillis();
+        sweepStaleEntries(now);
+
+        String ip = resolveClientIp(request);
 
         Window window = windows.compute(ip, (key, existing) -> {
             if (existing == null || now - existing.windowStart() >= WINDOW_MILLIS) {
@@ -58,10 +73,26 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     }
 
     private String resolveClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
+        if (trustForwardedHeaders) {
+            String forwarded = request.getHeader("X-Forwarded-For");
+            if (forwarded != null && !forwarded.isBlank()) {
+                return forwarded.split(",")[0].trim();
+            }
         }
         return request.getRemoteAddr();
+    }
+
+    private void sweepStaleEntries(long now) {
+        long previousSweep = lastSweep.get();
+        if (now - previousSweep < SWEEP_INTERVAL_MILLIS) {
+            return;
+        }
+        if (!lastSweep.compareAndSet(previousSweep, now)) {
+            return;
+        }
+        windows.entrySet().removeIf(entry -> now - entry.getValue().windowStart() >= WINDOW_MILLIS);
+        if (windows.size() > MAX_TRACKED_CLIENTS) {
+            windows.clear();
+        }
     }
 }

@@ -52,6 +52,12 @@ security:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
 
+app:
+  rate-limit:
+    # Only enable when running behind a trusted reverse proxy that overwrites
+    # X-Forwarded-For (never appends). Otherwise the header is attacker-controlled.
+    trust-forwarded-headers: ${RATE_LIMIT_TRUST_FORWARDED_HEADERS:false}
+
 logging:
   level:
     root: ${LOGGING_LEVEL_ROOT:INFO}
