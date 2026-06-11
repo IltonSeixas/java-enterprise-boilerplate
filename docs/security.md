@@ -73,9 +73,11 @@ Authentication endpoints are protected by an in-process per-IP rate limiter impl
 Auth endpoints: 10 requests / 60 seconds per IP
 ```
 
-The limiter uses a fixed-window counter per IP stored in a `ConcurrentHashMap`. The window resets after 60 seconds from the first request in that window. On limit exceeded, the filter short-circuits the chain and returns `429 Too Many Requests` before Spring Security processes the request.
+The limiter uses a fixed-window counter per IP stored in a `ConcurrentHashMap`, with a periodic sweep that evicts windows older than 60 seconds (and a hard cap that clears the map if it ever grows past 100k tracked clients) so memory stays bounded under high-cardinality traffic. The window resets after 60 seconds from the first request in that window. On limit exceeded, the filter short-circuits the chain and returns `429 Too Many Requests` before Spring Security processes the request.
 
-`X-Forwarded-For` is respected so the real client IP is used when the application runs behind a reverse proxy.
+The matched path uses `HttpServletRequest#getServletPath()` — the same normalized, decoded path Spring uses for routing — so the prefix check cannot be bypassed with raw-URI tricks (`;jsessionid`, `%2e%2e`, double slashes, etc.) that would otherwise let a request slip past `shouldNotFilter` while still being routed to the auth controller.
+
+`X-Forwarded-For` is **ignored by default** — `request.getRemoteAddr()` is used as the client IP. A spoofable header must never be trusted for rate-limit keys unless a reverse proxy is guaranteed to overwrite (not append to) it. Set `RATE_LIMIT_TRUST_FORWARDED_HEADERS=true` (`app.rate-limit.trust-forwarded-headers`) only when the application sits behind such a proxy.
 
 For all other paths, rate limiting is delegated to the edge layer (API gateway, reverse proxy, or CDN) — the in-process limiter is scoped to auth to mitigate credential stuffing and brute-force attacks without introducing a broad dependency.
 
