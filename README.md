@@ -129,6 +129,7 @@ The `PasswordHasher` output port in `application/port/out/` abstracts the algori
 - Security headers: configured via `HttpSecurity` — CSP, HSTS, X-Frame-Options, X-Content-Type-Options
 - CORS: explicit allow-list, never `*` in production
 - Input validation: Jakarta Bean Validation on all DTOs — invalid input returns 400 before reaching the use case
+- CSRF: stateless endpoints authenticate via the `Authorization` bearer header and are exempt. `/api/v1/auth/refresh` and `/api/v1/auth/logout` authenticate via the `refresh_token` cookie and require the `X-XSRF-TOKEN` header, read from the `XSRF-TOKEN` cookie set by the server
 
 ---
 
