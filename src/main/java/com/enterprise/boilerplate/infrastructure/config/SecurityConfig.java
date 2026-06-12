@@ -2,6 +2,7 @@ package com.enterprise.boilerplate.infrastructure.config;
 
 import com.enterprise.boilerplate.infrastructure.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,7 +13,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
@@ -45,8 +46,8 @@ public class SecurityConfig {
         // refresh_token cookie; every other endpoint relies solely on the JWT
         // Authorization header, which a cross-site request cannot forge.
         RequestMatcher cookieAuthenticatedEndpoints = new OrRequestMatcher(
-                new AntPathRequestMatcher("/api/v1/auth/refresh", "POST"),
-                new AntPathRequestMatcher("/api/v1/auth/logout", "POST"));
+                PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/v1/auth/refresh"),
+                PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/v1/auth/logout"));
 
         http
             .csrf(csrf -> csrf
