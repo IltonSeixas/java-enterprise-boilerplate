@@ -37,8 +37,27 @@ jobs:
           java-version: "21"
           distribution: temurin
           cache: maven
+
+      # The NVD database is rebuilt from scratch on every uncached run. Under
+      # NVD API rate limiting (no API key) this can take long enough for the
+      # embedded H2 database to be closed mid-update, corrupting the update
+      # and failing the whole job. Caching the data directory keeps updates
+      # incremental and avoids that failure mode.
+      - name: Cache dependency-check NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: dependency-check-data-${{ github.run_id }}
+          restore-keys: dependency-check-data-
+
       - name: Dependency vulnerability check
-        run: ./mvnw org.owasp:dependency-check-maven:check -B
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          ./mvnw org.owasp:dependency-check-maven:12.2.2:check -B \
+            -DnvdApiKey="${NVD_API_KEY}" \
+            -DnvdApiDelay=4000
+
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
