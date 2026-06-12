@@ -23,6 +23,17 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: false
+  # The postgres profile re-enables these via the override below. Without this
+  # exclusion, spring-boot-starter-data-jpa on the classpath (required for the
+  # postgres profile) triggers DataSource/Hikari autoconfiguration even when no
+  # datasource is configured, failing startup under the default inmemory profile.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
 
 management:
   endpoints:
@@ -70,6 +81,8 @@ spring:
   config:
     activate:
       on-profile: postgres
+  autoconfigure:
+    exclude: []
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/boilerplate}
     username: ${SPRING_DATASOURCE_USERNAME:boilerplate}

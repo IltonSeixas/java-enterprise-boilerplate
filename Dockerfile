@@ -1,9 +1,14 @@
 # Stage 1: build
-FROM eclipse-temurin:21-jdk-alpine AS builder
+# glibc-based image required: the protoc and protoc-gen-grpc-java binaries
+# downloaded by protobuf-maven-plugin are dynamically linked against glibc
+# and do not run on musl (Alpine).
+FROM eclipse-temurin:21-jdk AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache maven
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y maven \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY pom.xml ./
 RUN mvn dependency:go-offline -B -q
