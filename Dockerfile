@@ -2,7 +2,7 @@
 # glibc-based image required: the protoc and protoc-gen-grpc-java binaries
 # downloaded by protobuf-maven-plugin are dynamically linked against glibc
 # and do not run on musl (Alpine).
-FROM eclipse-temurin:21-jdk AS builder
+FROM eclipse-temurin:25-jdk AS builder
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ COPY src ./src
 RUN mvn package -DskipTests -B -q
 
 # Stage 2: runtime
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 
 RUN addgroup --system --gid 1001 app \
     && adduser --system --uid 1001 --ingroup app app
