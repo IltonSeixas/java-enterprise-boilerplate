@@ -62,7 +62,7 @@ The `domain/` and `application/` packages never import from Spring, JPA, or any 
 
 | Concern | Library |
 |---|---|
-| Framework | `Spring Boot 3.x` |
+| Framework | `Spring Boot 4.x` |
 | Concurrency | `Project Loom` — Virtual Threads (JDK 21) |
 | HTTP | `Spring MVC` (blocking, Tomcat with Virtual Threads) |
 | gRPC | `grpc-server-spring-boot-starter` (`net.devh`) + `protobuf-maven-plugin` |
