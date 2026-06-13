@@ -6,7 +6,6 @@ import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
@@ -56,7 +55,7 @@ class PostgresUserRepository implements UserRepository {
     @Override
     @Transactional
     public void saveFirstOwner(User user) {
-        entityManager.createNativeQuery(
+        int inserted = entityManager.createNativeQuery(
                         "INSERT INTO users (id, email, password_hash, name, role, active, created_at, updated_at) " +
                         "SELECT :id, :email, :passwordHash, :name, 'OWNER', true, :createdAt, :updatedAt " +
                         "WHERE NOT EXISTS (SELECT 1 FROM users WHERE role = 'OWNER')")
@@ -68,8 +67,8 @@ class PostgresUserRepository implements UserRepository {
                 .setParameter("updatedAt", user.getUpdatedAt())
                 .executeUpdate();
 
-        if (!jpa.existsOwner()) {
-            throw new UserAlreadyExistsException("An owner already exists");
+        if (inserted == 0) {
+            throw UserAlreadyExistsException.ownerAlreadyExists();
         }
     }
 }
