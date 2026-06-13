@@ -2,7 +2,9 @@ package com.enterprise.boilerplate.interfaces.rest;
 
 import com.enterprise.boilerplate.domain.exception.ForbiddenException;
 import com.enterprise.boilerplate.domain.exception.InactiveUserException;
+import com.enterprise.boilerplate.domain.exception.InsufficientPermissionsException;
 import com.enterprise.boilerplate.domain.exception.InvalidNameException;
+import com.enterprise.boilerplate.domain.exception.InvalidRoleException;
 import com.enterprise.boilerplate.domain.exception.InvalidTokenException;
 import com.enterprise.boilerplate.domain.exception.InvalidUserIdException;
 import com.enterprise.boilerplate.domain.exception.UserAlreadyExistsException;
@@ -71,6 +73,20 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleInvalidUserId(InvalidUserIdException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
         problem.setType(URI.create("https://errors.enterprise.com/invalid-user-id"));
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidRoleException.class)
+    public ProblemDetail handleInvalidRole(InvalidRoleException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setType(URI.create("https://errors.enterprise.com/invalid-role"));
+        return problem;
+    }
+
+    @ExceptionHandler(InsufficientPermissionsException.class)
+    public ProblemDetail handleInsufficientPermissions(InsufficientPermissionsException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problem.setType(URI.create("https://errors.enterprise.com/insufficient-permissions"));
         return problem;
     }
 

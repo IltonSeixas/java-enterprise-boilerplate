@@ -1,10 +1,12 @@
 package com.enterprise.boilerplate.interfaces.grpc;
 
 import com.enterprise.boilerplate.application.usecase.ChangePasswordUseCase;
+import com.enterprise.boilerplate.application.usecase.ChangeUserRoleUseCase;
 import com.enterprise.boilerplate.application.usecase.GetUserUseCase;
 import com.enterprise.boilerplate.application.usecase.UpdateProfileUseCase;
 import com.enterprise.boilerplate.interfaces.grpc.proto.ChangePasswordRequest;
 import com.enterprise.boilerplate.interfaces.grpc.proto.ChangePasswordResponse;
+import com.enterprise.boilerplate.interfaces.grpc.proto.ChangeRoleRequest;
 import com.enterprise.boilerplate.interfaces.grpc.proto.GetMeRequest;
 import com.enterprise.boilerplate.interfaces.grpc.proto.GetUserRequest;
 import com.enterprise.boilerplate.interfaces.grpc.proto.UpdateProfileRequest;
@@ -20,13 +22,16 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
     private final GetUserUseCase getUser;
     private final UpdateProfileUseCase updateProfile;
     private final ChangePasswordUseCase changePassword;
+    private final ChangeUserRoleUseCase changeUserRole;
 
     public UserGrpcService(GetUserUseCase getUser,
                            UpdateProfileUseCase updateProfile,
-                           ChangePasswordUseCase changePassword) {
+                           ChangePasswordUseCase changePassword,
+                           ChangeUserRoleUseCase changeUserRole) {
         this.getUser = getUser;
         this.updateProfile = updateProfile;
         this.changePassword = changePassword;
+        this.changeUserRole = changeUserRole;
     }
 
     @Override
@@ -63,6 +68,16 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
             changePassword.execute(callerId, new com.enterprise.boilerplate.application.dto.ChangePasswordRequest(
                     request.getCurrentPassword(), request.getNewPassword()));
             return ChangePasswordResponse.getDefaultInstance();
+        });
+    }
+
+    @Override
+    public void changeRole(ChangeRoleRequest request, StreamObserver<UserResponse> responseObserver) {
+        GrpcCalls.handle(responseObserver, () -> {
+            String callerId = currentCaller().userId();
+            var response = changeUserRole.execute(callerId, request.getUserId(),
+                    new com.enterprise.boilerplate.application.dto.ChangeRoleRequest(request.getRole()));
+            return GrpcMappers.toProtoUserResponse(response);
         });
     }
 
