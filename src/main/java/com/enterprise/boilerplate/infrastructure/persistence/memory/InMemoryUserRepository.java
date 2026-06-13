@@ -52,7 +52,7 @@ public class InMemoryUserRepository implements UserRepository {
         firstOwnerLock.lock();
         try {
             if (hasOwner()) {
-                throw new UserAlreadyExistsException("An owner already exists");
+                throw UserAlreadyExistsException.ownerAlreadyExists();
             }
             store.put(user.getId().toString(), user);
         } finally {
