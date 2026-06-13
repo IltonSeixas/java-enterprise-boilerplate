@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.domain.entity;
 
+import com.enterprise.boilerplate.domain.exception.InsufficientPermissionsException;
 import com.enterprise.boilerplate.domain.exception.InvalidNameException;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
@@ -56,6 +57,18 @@ public final class User {
 
     public void changePassword(PasswordHash newHash) {
         this.passwordHash = newHash;
+        this.updatedAt = Instant.now();
+    }
+
+    public boolean canChangeRoleOf(User target) {
+        return this.role == Role.OWNER && !this.id.equals(target.id);
+    }
+
+    public void changeRole(Role newRole, User actor) {
+        if (!actor.canChangeRoleOf(this)) {
+            throw new InsufficientPermissionsException();
+        }
+        this.role = newRole;
         this.updatedAt = Instant.now();
     }
 

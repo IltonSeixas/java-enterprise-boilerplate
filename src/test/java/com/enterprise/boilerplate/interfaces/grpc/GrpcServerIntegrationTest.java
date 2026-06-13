@@ -3,6 +3,7 @@ package com.enterprise.boilerplate.interfaces.grpc;
 import com.enterprise.boilerplate.application.port.out.PasswordHasherPort;
 import com.enterprise.boilerplate.application.port.out.TokenServicePort;
 import com.enterprise.boilerplate.application.usecase.ChangePasswordUseCase;
+import com.enterprise.boilerplate.application.usecase.ChangeUserRoleUseCase;
 import com.enterprise.boilerplate.application.usecase.GetUserUseCase;
 import com.enterprise.boilerplate.application.usecase.LoginUserUseCase;
 import com.enterprise.boilerplate.application.usecase.LogoutUseCase;
@@ -71,11 +72,12 @@ class GrpcServerIntegrationTest {
         var getUser = new GetUserUseCase(userRepository);
         var updateProfile = new UpdateProfileUseCase(userRepository);
         var changePassword = new ChangePasswordUseCase(userRepository, hasher, tokenService);
+        var changeUserRole = new ChangeUserRoleUseCase(userRepository);
 
         server = InProcessServerBuilder.forName(SERVER_NAME)
                 .directExecutor()
                 .addService(new AuthGrpcService(registerUser, loginUser, refreshToken, logoutUser))
-                .addService(new UserGrpcService(getUser, updateProfile, changePassword))
+                .addService(new UserGrpcService(getUser, updateProfile, changePassword, changeUserRole))
                 .intercept(new GrpcAuthenticationInterceptor(tokenService, userRepository))
                 .build()
                 .start();

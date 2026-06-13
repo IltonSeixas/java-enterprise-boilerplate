@@ -147,6 +147,7 @@ The `PasswordHasher` output port in `application/port/out/` abstracts the algori
 | `PUT` | `/api/v1/users/me` | Update authenticated user profile |
 | `PUT` | `/api/v1/users/me/password` | Change authenticated user password |
 | `GET` | `/api/v1/users/{id}` | Get a user by id |
+| `PUT` | `/api/v1/users/{id}/role` | Change a user's role (Owner only, cannot change own role) |
 | `GET` | `/actuator/health` | Health check (Spring Actuator) |
 | `GET` | `/actuator/prometheus` | Prometheus metrics |
 
@@ -164,6 +165,7 @@ Proto definitions in `src/main/proto/boilerplate.proto`. Stubs are generated aut
 | `UserService` | `GetUser` | `GET /api/v1/users/{id}` |
 | `UserService` | `UpdateProfile` | `PUT /api/v1/users/me` |
 | `UserService` | `ChangePassword` | `PUT /api/v1/users/me/password` |
+| `UserService` | `ChangeRole` | `PUT /api/v1/users/{id}/role` |
 
 - **Authentication**: `UserService` calls require an `authorization: Bearer <access-token>` request metadata entry. A global server interceptor validates the token, confirms the account is active, and exposes the caller through a `Context` key — mirroring the REST `JwtAuthenticationFilter`'s active-account check.
 - **Error mapping**: domain exceptions are translated to gRPC status codes (`INVALID_ARGUMENT`, `ALREADY_EXISTS`, `NOT_FOUND`, `UNAUTHENTICATED`, `PERMISSION_DENIED`, `INTERNAL`) so clients receive the same semantics as REST responses, expressed idiomatically for gRPC.
