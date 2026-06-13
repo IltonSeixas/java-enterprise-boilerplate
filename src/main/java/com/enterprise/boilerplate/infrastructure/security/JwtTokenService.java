@@ -100,10 +100,6 @@ public class JwtTokenService implements TokenServicePort {
         });
     }
 
-    public Optional<String> extractUserIdFromToken(String token) {
-        return validateAccessToken(token);
-    }
-
     public String extractRole(String token) {
         try {
             return Jwts.parser()
