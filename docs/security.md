@@ -43,9 +43,9 @@ Verification re-derives the hash with the stored salt and parameters, then compa
 
 ## Authentication
 
-### Access Token (JWT HS256)
+### Access Token (JWT EdDSA)
 
-- Algorithm: HS256 (HMAC-SHA256) via `jjwt` (`io.jsonwebtoken`)
+- Algorithm: EdDSA (Ed25519) via `jjwt` (`io.jsonwebtoken`) — asymmetric, the private key (`JWT_PRIVATE_KEY_PATH`) signs and the public key (`JWT_PUBLIC_KEY_PATH`) verifies
 - TTL: 15 minutes (`JWT_ACCESS_EXPIRY_MINUTES`)
 - Claims: `sub` (user ID), `role`, `iat`, `exp`
 - Transport: returned in the JSON response body (`access_token`); the client is responsible for storage and for sending it as `Authorization: Bearer <token>`
