@@ -50,9 +50,12 @@ src/test/java/com/enterprise/boilerplate/
 │   └── persistence/
 │       └── InMemoryUserRepositoryTest.java    # in-memory adapter tests
 │
-└── interfaces/
-    └── grpc/
-        └── GrpcServerIntegrationTest.java     # @Tag("integration") — in-process gRPC suite
+├── interfaces/
+│   └── grpc/
+│       └── GrpcServerIntegrationTest.java     # @Tag("integration") — in-process gRPC suite
+│
+└── architecture/
+    └── LayeredArchitectureTest.java           # ArchUnit — enforces the Clean Architecture dependency rule
 ```
 
 ---
@@ -173,6 +176,18 @@ class GrpcServerIntegrationTest {
 ```
 
 This in-process approach mirrors the bufconn/loopback pattern used by the Go and TypeScript boilerplates' gRPC integration suites — fast, deterministic, and free of Docker or network dependencies.
+
+---
+
+## Architecture Tests
+
+`LayeredArchitectureTest` uses [ArchUnit](https://www.archunit.org/) to enforce the dependency rule from [ADR-0001](adr/0001-clean-architecture.md) as a real, automatically-run test rather than a convention checked only in review — see [ADR-0006](adr/0006-archunit-architecture-tests.md). It runs as part of the default `./mvnw test` step and fails the build if:
+
+- `domain/` depends on Spring, JPA/Hibernate, gRPC, JJWT, BouncyCastle, or a Redis client
+- `application/` depends on JPA/Hibernate, gRPC, JJWT, BouncyCastle, or a Redis client (Spring DI annotations such as `@Service`/`@Value` are allowed)
+- any layer is accessed from a layer further out (e.g. `domain/` reaching into `infrastructure/`)
+- a class named `*UseCase` lives outside `application.usecase`
+- a type under `application.port` is not an interface
 
 ---
 

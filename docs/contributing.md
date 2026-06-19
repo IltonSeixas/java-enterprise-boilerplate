@@ -38,7 +38,9 @@ All of the above run automatically in CI on every pull request. A PR will not be
 
 ### Architecture
 
-- Never import Spring, JPA, or any infrastructure class from `domain/` or `application/`
+- `domain/` must never depend on any framework — not Spring, not JPA/Hibernate, not gRPC, not JJWT, not BouncyCastle, not a Redis client. Domain objects are constructed with `new`, never injected.
+- `application/` may use Spring's dependency-injection annotations (`@Service`, `@Value`) but must never depend on JPA/Hibernate, gRPC, JJWT, BouncyCastle, or a Redis client
+- These rules are enforced automatically by `LayeredArchitectureTest` (ArchUnit) — see [ADR-0006](adr/0006-archunit-architecture-tests.md). A PR that violates them fails `./mvnw test`
 - Every new use case must have a corresponding `*Test.java` file
 - Every new value object must validate its invariants in the constructor and have tests for both valid and invalid inputs
 

@@ -21,5 +21,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 - Docker multi-stage image (Eclipse Temurin 21) and docker-compose stack
 - GitHub Actions CI (compile, unit tests, OWASP dependency-check), Docker, and Release workflows
 - Architecture documentation, ADRs, security policy
+- `LayeredArchitectureTest` (ArchUnit) enforcing the Clean Architecture dependency rule from ADR-0001 at build time — see [ADR-0006](docs/adr/0006-archunit-architecture-tests.md)
 
 [Unreleased]: https://github.com/IltonSeixas/java-enterprise-boilerplate/compare/HEAD
