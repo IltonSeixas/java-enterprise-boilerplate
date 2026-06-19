@@ -48,7 +48,9 @@ src/test/java/com/enterprise/boilerplate/
 │
 ├── infrastructure/
 │   └── persistence/
-│       └── InMemoryUserRepositoryTest.java    # in-memory adapter tests
+│       ├── InMemoryUserRepositoryTest.java    # in-memory adapter tests
+│       └── postgres/
+│           └── PostgresUserRepositoryIntegrationTest.java  # @Tag("integration") — Testcontainers PostgreSQL
 │
 └── interfaces/
     └── grpc/
@@ -173,6 +175,8 @@ class GrpcServerIntegrationTest {
 ```
 
 This in-process approach mirrors the bufconn/loopback pattern used by the Go and TypeScript boilerplates' gRPC integration suites — fast, deterministic, and free of Docker or network dependencies.
+
+`PostgresUserRepositoryIntegrationTest` covers the PostgreSQL adapter the same way: it is also `@Tag("integration")`, but instead of an in-process fake it uses Testcontainers (`org.testcontainers:postgresql` and `org.testcontainers:junit-jupiter`, pinned via the `testcontainers.version` property in `pom.xml`) to start a real, disposable PostgreSQL container per test class via `@Testcontainers`/`@Container`. This requires a working Docker daemon locally or in CI, but no manual database setup — the container's JDBC URL is wired into the Spring context at runtime via `@DynamicPropertySource`.
 
 ---
 
