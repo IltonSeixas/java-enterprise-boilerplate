@@ -34,6 +34,19 @@ All of the above run automatically in CI on every pull request. A PR will not be
 
 ---
 
+## Required GitHub Secrets
+
+The "Security Audit" CI job runs OWASP `dependency-check`, which queries the NVD (National Vulnerability Database) to refresh its local vulnerability data on every run. Without an API key, NVD rate-limits requests so heavily that the download of its full record set can take hours or never complete.
+
+Maintainers must configure an **`NVD_API_KEY`** secret, obtained for free from [nvd.nist.gov/developers/request-an-api-key](https://nvd.nist.gov/developers/request-an-api-key), in **both** of the following locations under repository **Settings → Secrets and variables**:
+
+- **Actions** — used by workflow runs triggered from same-repo branches and manually-opened PRs
+- **Dependabot** — used by workflow runs triggered from Dependabot PRs
+
+These are two separate secret stores. Dependabot-triggered workflow runs do **not** receive Actions secrets, so the key must be added to both tabs or the audit job will hang on every Dependabot PR.
+
+---
+
 ## Code Standards
 
 ### Architecture
