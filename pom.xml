@@ -29,6 +29,7 @@
         <bouncycastle.version>1.84</bouncycastle.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <archunit.version>1.4.1</archunit.version>
+        <resilience4j.version>2.3.0</resilience4j.version>
         <excludedGroups>integration</excludedGroups>
     </properties>
 
@@ -213,6 +214,17 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Resilience4j: circuit breaker / retry / timeout for infrastructure adapters -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-spring-boot3</artifactId>
+            <version>${resilience4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
     </dependencies>
 
