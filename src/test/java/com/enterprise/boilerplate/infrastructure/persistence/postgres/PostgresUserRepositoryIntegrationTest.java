@@ -2,6 +2,8 @@ package com.enterprise.boilerplate.infrastructure.persistence.postgres;
 
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.exception.UserAlreadyExistsException;
+import com.enterprise.boilerplate.domain.repository.PageCriteria;
+import com.enterprise.boilerplate.domain.repository.UserFilter;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
@@ -83,5 +85,34 @@ class PostgresUserRepositoryIntegrationTest {
                 .isInstanceOf(UserAlreadyExistsException.class);
 
         assertThat(userRepository.findById(racingUser.getId())).isEmpty();
+    }
+
+    @Test
+    void findAll_withRoleFilter_returnsOnlyMatchingUsersAndCorrectTotal() {
+        userRepository.save(User.create(Email.of("admin1@example.com"),
+                PasswordHash.of("$argon2id$v=19$m=65536,t=3,p=4$c2FsdA$aGFzaA"), "Admin One", User.Role.ADMIN));
+        userRepository.save(User.create(Email.of("user1@example.com"),
+                PasswordHash.of("$argon2id$v=19$m=65536,t=3,p=4$c2FsdA$aGFzaA"), "User One", User.Role.USER));
+
+        var page = userRepository.findAll(new UserFilter(User.Role.ADMIN, null, null), new PageCriteria(0, 10));
+
+        assertThat(page.totalElements()).isEqualTo(1);
+        assertThat(page.content()).hasSize(1);
+        assertThat(page.content().get(0).getRole()).isEqualTo(User.Role.ADMIN);
+    }
+
+    @Test
+    void findAll_withPagination_returnsRequestedSlice() {
+        for (int i = 0; i < 5; i++) {
+            userRepository.save(User.create(Email.of("page-user" + i + "@example.com"),
+                    PasswordHash.of("$argon2id$v=19$m=65536,t=3,p=4$c2FsdA$aGFzaA"), "PageUser" + i, User.Role.USER));
+        }
+
+        var firstPage = userRepository.findAll(UserFilter.all(), new PageCriteria(0, 2));
+        var secondPage = userRepository.findAll(UserFilter.all(), new PageCriteria(1, 2));
+
+        assertThat(firstPage.content()).hasSize(2);
+        assertThat(secondPage.content()).hasSize(2);
+        assertThat(firstPage.totalElements()).isEqualTo(5);
     }
 }

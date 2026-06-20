@@ -2,12 +2,16 @@ package com.enterprise.boilerplate.infrastructure.persistence.postgres;
 
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.exception.UserAlreadyExistsException;
+import com.enterprise.boilerplate.domain.repository.PageCriteria;
+import com.enterprise.boilerplate.domain.repository.UserFilter;
+import com.enterprise.boilerplate.domain.repository.UserPage;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.context.annotation.Profile;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -70,5 +74,15 @@ class PostgresUserRepository implements UserRepository {
         if (inserted == 0) {
             throw UserAlreadyExistsException.ownerAlreadyExists();
         }
+    }
+
+    @Override
+    public UserPage findAll(UserFilter filter, PageCriteria pageCriteria) {
+        var pageable = org.springframework.data.domain.PageRequest.of(
+                pageCriteria.page(), pageCriteria.size(), Sort.by("createdAt").ascending());
+
+        var page = jpa.findAll(UserSpecifications.matching(filter), pageable);
+
+        return new UserPage(page.getContent().stream().map(UserJpaEntity::toDomain).toList(), page.getTotalElements());
     }
 }
