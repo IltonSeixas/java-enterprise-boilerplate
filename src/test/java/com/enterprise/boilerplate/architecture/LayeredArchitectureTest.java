@@ -43,18 +43,20 @@ class LayeredArchitectureTest {
             .because("the domain layer must be framework-agnostic — it expresses business rules only");
 
     @ArchTest
-    static final ArchRule application_must_not_depend_on_persistence_or_protocol_frameworks = noClasses()
+    static final ArchRule application_must_not_depend_on_any_framework = noClasses()
             .that().resideInAPackage(APPLICATION)
             .should().dependOnClassesThat()
             .resideInAnyPackage(
+                    "org.springframework..",
                     "jakarta.persistence..",
                     "org.hibernate..",
                     "io.grpc..",
                     "io.jsonwebtoken..",
                     "org.bouncycastle..",
                     "redis.clients..")
-            .because("use cases must stay portable across persistence and transport adapters — "
-                    + "Spring is allowed here only for dependency injection (@Service, @Value)");
+            .because("use cases must be plain, framework-agnostic classes — "
+                    + "Spring wiring happens exclusively through explicit @Bean factory methods "
+                    + "in infrastructure configuration classes, never through @Service/@Value on the use case itself");
 
     @ArchTest
     static final ArchRule use_cases_must_reside_in_usecase_package = classes()

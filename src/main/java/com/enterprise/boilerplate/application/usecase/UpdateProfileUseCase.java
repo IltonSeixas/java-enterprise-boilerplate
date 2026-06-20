@@ -5,9 +5,7 @@ import com.enterprise.boilerplate.application.dto.UserResponse;
 import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
-import org.springframework.stereotype.Service;
 
-@Service
 public class UpdateProfileUseCase {
 
     private final UserRepository userRepository;
