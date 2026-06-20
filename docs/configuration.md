@@ -51,6 +51,7 @@ Activate the PostgreSQL profile with: `SPRING_PROFILES_ACTIVE=postgres`
 | Property / Env Var | Required | Default | Description |
 |---|---|---|---|
 | `CORS_ALLOWED_ORIGINS` | No | `http://localhost:3000,http://localhost:5173` | Comma-separated CORS allowed origins |
+| `RATE_LIMIT_TRUST_FORWARDED_HEADERS` | No | `false` | Whether `AuthRateLimitFilter` trusts `X-Forwarded-For` to resolve the client IP — enable only behind a trusted reverse proxy that sets this header itself |
 
 ### Observability
 
