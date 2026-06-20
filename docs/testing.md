@@ -185,10 +185,9 @@ This in-process approach mirrors the bufconn/loopback pattern used by the Go and
 
 ## Architecture Tests
 
-`LayeredArchitectureTest` uses [ArchUnit](https://www.archunit.org/) to enforce the dependency rule from [ADR-0001](adr/0001-clean-architecture.md) as a real, automatically-run test rather than a convention checked only in review — see [ADR-0006](adr/0006-archunit-architecture-tests.md). It runs as part of the default `./mvnw test` step and fails the build if:
+`LayeredArchitectureTest` uses [ArchUnit](https://www.archunit.org/) to enforce the dependency rule from [ADR-0001](adr/0001-clean-architecture.md) as a real, automatically-run test rather than a convention checked only in review — see [ADR-0006](adr/0006-archunit-architecture-tests.md) and [ADR-0007](adr/0007-zero-spring-in-application-layer.md). It runs as part of the default `./mvnw test` step and fails the build if:
 
-- `domain/` depends on Spring, JPA/Hibernate, gRPC, JJWT, BouncyCastle, or a Redis client
-- `application/` depends on JPA/Hibernate, gRPC, JJWT, BouncyCastle, or a Redis client (Spring DI annotations such as `@Service`/`@Value` are allowed)
+- `domain/` or `application/` depends on Spring, JPA/Hibernate, gRPC, JJWT, BouncyCastle, or a Redis client — including Spring's own DI annotations (`@Service`, `@Value`); use cases must be plain classes wired through `infrastructure/config/UseCaseConfig`
 - any layer is accessed from a layer further out (e.g. `domain/` reaching into `infrastructure/`)
 - a class named `*UseCase` lives outside `application.usecase`
 - a type under `application.port` is not an interface
