@@ -72,7 +72,7 @@ The `domain/` and `application/` packages never import from Spring, JPA, or any 
 | Validation | `Jakarta Bean Validation` + `Hibernate Validator` |
 | Observability | `Micrometer` + `OpenTelemetry` + `Micrometer Tracing` |
 | Structured logging | `Logback` |
-| Testing | `JUnit 5` + `Mockito` + `AssertJ` |
+| Testing | `JUnit 5` + `Mockito` + `AssertJ` + `ArchUnit` |
 | Build | `Maven` (with `mvnw` wrapper) |
 
 ---
@@ -186,6 +186,7 @@ Proto definitions in `src/main/proto/boilerplate.proto`. Stubs are generated aut
 
 - **Unit tests**: `src/test/java/**/*Test.java`. Domain entities, value objects, and use cases tested with JUnit 5, Mockito, and AssertJ. Repository test doubles are plain Java classes implementing the port interface — no Spring context needed.
 - **Integration tests**: tagged with `@Tag("integration")` (e.g. `GrpcServerIntegrationTest`) and excluded from the default `mvn test` run via the Surefire `excludedGroups` configuration in `pom.xml`. They boot the real gRPC server wired with in-memory adapters and drive it through actual gRPC clients — no external infrastructure required.
+- **Architecture tests**: `LayeredArchitectureTest` (ArchUnit) enforces the Clean Architecture dependency rule from [ADR-0001](docs/adr/0001-clean-architecture.md) at build time — see [ADR-0006](docs/adr/0006-archunit-architecture-tests.md). Runs as part of the regular `./mvnw test` step.
 
 ### TDD Approach
 

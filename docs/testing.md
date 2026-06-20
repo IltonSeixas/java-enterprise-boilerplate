@@ -52,9 +52,12 @@ src/test/java/com/enterprise/boilerplate/
 │       └── postgres/
 │           └── PostgresUserRepositoryIntegrationTest.java  # @Tag("integration") — Testcontainers PostgreSQL
 │
-└── interfaces/
-    └── grpc/
-        └── GrpcServerIntegrationTest.java     # @Tag("integration") — in-process gRPC suite
+├── interfaces/
+│   └── grpc/
+│       └── GrpcServerIntegrationTest.java     # @Tag("integration") — in-process gRPC suite
+│
+└── architecture/
+    └── LayeredArchitectureTest.java           # ArchUnit — enforces the Clean Architecture dependency rule
 ```
 
 ---
@@ -177,6 +180,18 @@ class GrpcServerIntegrationTest {
 This in-process approach mirrors the bufconn/loopback pattern used by the Go and TypeScript boilerplates' gRPC integration suites — fast, deterministic, and free of Docker or network dependencies.
 
 `PostgresUserRepositoryIntegrationTest` covers the PostgreSQL adapter the same way: it is also `@Tag("integration")`, but instead of an in-process fake it uses Testcontainers (`org.testcontainers:postgresql` and `org.testcontainers:junit-jupiter`, pinned via the `testcontainers.version` property in `pom.xml`) to start a real, disposable PostgreSQL container per test class via `@Testcontainers`/`@Container`. This requires a working Docker daemon locally or in CI, but no manual database setup — the container's JDBC URL is wired into the Spring context at runtime via `@DynamicPropertySource`.
+
+---
+
+## Architecture Tests
+
+`LayeredArchitectureTest` uses [ArchUnit](https://www.archunit.org/) to enforce the dependency rule from [ADR-0001](adr/0001-clean-architecture.md) as a real, automatically-run test rather than a convention checked only in review — see [ADR-0006](adr/0006-archunit-architecture-tests.md). It runs as part of the default `./mvnw test` step and fails the build if:
+
+- `domain/` depends on Spring, JPA/Hibernate, gRPC, JJWT, BouncyCastle, or a Redis client
+- `application/` depends on JPA/Hibernate, gRPC, JJWT, BouncyCastle, or a Redis client (Spring DI annotations such as `@Service`/`@Value` are allowed)
+- any layer is accessed from a layer further out (e.g. `domain/` reaching into `infrastructure/`)
+- a class named `*UseCase` lives outside `application.usecase`
+- a type under `application.port` is not an interface
 
 ---
 
