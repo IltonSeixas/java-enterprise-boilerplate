@@ -28,6 +28,7 @@
         <opentelemetry.version>1.63.0</opentelemetry.version>
         <bouncycastle.version>1.84</bouncycastle.version>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <archunit.version>1.4.1</archunit.version>
         <excludedGroups>integration</excludedGroups>
     </properties>
 
@@ -196,6 +197,14 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
             <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Architecture tests -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

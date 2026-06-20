@@ -51,7 +51,9 @@ These are two separate secret stores. Dependabot-triggered workflow runs do **no
 
 ### Architecture
 
-- Never import Spring, JPA, or any infrastructure class from `domain/` or `application/`
+- `domain/` must never depend on any framework — not Spring, not JPA/Hibernate, not gRPC, not JJWT, not BouncyCastle, not a Redis client. Domain objects are constructed with `new`, never injected.
+- `application/` may use Spring's dependency-injection annotations (`@Service`, `@Value`) but must never depend on JPA/Hibernate, gRPC, JJWT, BouncyCastle, or a Redis client
+- These rules are enforced automatically by `LayeredArchitectureTest` (ArchUnit) — see [ADR-0006](adr/0006-archunit-architecture-tests.md). A PR that violates them fails `./mvnw test`
 - Every new use case must have a corresponding `*Test.java` file
 - Every new value object must validate its invariants in the constructor and have tests for both valid and invalid inputs
 - No generic `BaseService`, `AbstractService`, `Manager`, or catch-all `@Service` class. Each use case is its own class with a single `execute` method and an explicit, narrow set of injected dependencies — never a god class that accumulates every repository and port in the application

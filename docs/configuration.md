@@ -1,6 +1,6 @@
 # Configuration
 
-All configuration is managed via Spring Boot's externalized configuration mechanism. Properties are read from `application.yml` and overridden by environment variables using Spring's relaxed binding (e.g., `JWT_SECRET` overrides `jwt.secret`).
+All configuration is managed via Spring Boot's externalized configuration mechanism. Properties are read from `application.yml` and overridden by environment variables using Spring's relaxed binding (e.g., `JWT_PRIVATE_KEY_PATH` overrides `jwt.private-key-path`).
 
 `.env.example` in the project root lists every variable read by `application.yml`. Copy it for local development:
 
@@ -41,7 +41,8 @@ Activate the PostgreSQL profile with: `SPRING_PROFILES_ACTIVE=postgres`
 
 | Property / Env Var | Required | Default | Description |
 |---|---|---|---|
-| `JWT_SECRET` | Yes (production) | — | HMAC-SHA256 (HS256) signing secret — minimum 32 characters, never shared across environments |
+| `JWT_PRIVATE_KEY_PATH` | Yes (production) | `jwt_private.pem` | Path to the Ed25519 PEM private key used to sign access tokens |
+| `JWT_PUBLIC_KEY_PATH` | Yes (production) | `jwt_public.pem` | Path to the Ed25519 PEM public key used to verify access tokens |
 | `JWT_ACCESS_EXPIRY_MINUTES` | No | `15` | Access token TTL in minutes |
 | `JWT_REFRESH_EXPIRY_DAYS` | No | `7` | Refresh token TTL in days |
 
@@ -73,7 +74,7 @@ Activate the PostgreSQL profile with: `SPRING_PROFILES_ACTIVE=postgres`
 
 Before deploying to production:
 
-- [ ] `JWT_SECRET` is a long, randomly generated value (minimum 32 characters) — never shared across environments
+- [ ] `JWT_PRIVATE_KEY_PATH` and `JWT_PUBLIC_KEY_PATH` point to a unique Ed25519 key pair generated for this environment — never reused across environments
 - [ ] `SPRING_DATASOURCE_URL` uses a TLS JDBC URL (`?ssl=true&sslmode=require`)
 - [ ] `SPRING_DATASOURCE_PASSWORD` is injected via a secrets manager
 - [ ] `SPRING_DATA_REDIS_URL` uses a password-protected Redis instance
