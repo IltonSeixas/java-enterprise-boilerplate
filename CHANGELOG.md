@@ -21,5 +21,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 - Docker multi-stage image (Eclipse Temurin 21) and docker-compose stack
 - GitHub Actions CI (compile, unit tests, OWASP dependency-check), Docker, and Release workflows
 - Architecture documentation, ADRs, security policy
+- Testcontainers-backed PostgreSQL integration test for the `PostgresUserRepository` adapter
+
+### Fixed
+- Race condition (TOCTOU) in `PostgresUserRepository.saveFirstOwner()` — first-owner registration now relies on the `INSERT ... WHERE NOT EXISTS` row count instead of a separate existence check
+- Confusing `UserAlreadyExistsException` message when the first-owner slot was already taken
 
 [Unreleased]: https://github.com/IltonSeixas/java-enterprise-boilerplate/compare/HEAD
