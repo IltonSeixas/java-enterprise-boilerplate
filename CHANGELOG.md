@@ -22,6 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Thi
 - GitHub Actions CI (compile, unit tests, OWASP dependency-check), Docker, and Release workflows
 - Architecture documentation, ADRs, security policy
 - Testcontainers-backed PostgreSQL integration test for the `PostgresUserRepository` adapter
+- `LayeredArchitectureTest` (ArchUnit) enforcing the Clean Architecture dependency rule from ADR-0001 at build time — see [ADR-0006](docs/adr/0006-archunit-architecture-tests.md)
 
 ### Changed
 - **Breaking:** JWT access tokens are now signed with EdDSA (Ed25519) instead of HS256. `JWT_SECRET` is replaced by `JWT_PRIVATE_KEY_PATH`/`JWT_PUBLIC_KEY_PATH` — see [ADR-0005](docs/adr/0005-eddsa-jwt-signing.md). Tokens issued under the previous version are not valid under this one.
