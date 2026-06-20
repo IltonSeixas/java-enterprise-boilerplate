@@ -8,6 +8,8 @@ import com.enterprise.boilerplate.domain.repository.UserPage;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.context.annotation.Profile;
@@ -31,33 +33,43 @@ class PostgresUserRepository implements UserRepository {
     }
 
     @Override
+    @CircuitBreaker(name = "postgres")
+    @Retry(name = "postgres-read")
     public Optional<User> findById(UserId id) {
         return jpa.findById(id.value()).map(UserJpaEntity::toDomain);
     }
 
     @Override
+    @CircuitBreaker(name = "postgres")
+    @Retry(name = "postgres-read")
     public Optional<User> findByEmail(Email email) {
         return jpa.findByEmail(email.value()).map(UserJpaEntity::toDomain);
     }
 
     @Override
     @Transactional
+    @CircuitBreaker(name = "postgres")
     public void save(User user) {
         jpa.save(UserJpaEntity.from(user));
     }
 
     @Override
+    @CircuitBreaker(name = "postgres")
+    @Retry(name = "postgres-read")
     public boolean existsByEmail(Email email) {
         return jpa.existsByEmail(email.value());
     }
 
     @Override
+    @CircuitBreaker(name = "postgres")
+    @Retry(name = "postgres-read")
     public boolean hasOwner() {
         return jpa.existsOwner();
     }
 
     @Override
     @Transactional
+    @CircuitBreaker(name = "postgres")
     public void saveFirstOwner(User user) {
         int inserted = entityManager.createNativeQuery(
                         "INSERT INTO users (id, email, password_hash, name, role, active, created_at, updated_at) " +
@@ -77,6 +89,8 @@ class PostgresUserRepository implements UserRepository {
     }
 
     @Override
+    @CircuitBreaker(name = "postgres")
+    @Retry(name = "postgres-read")
     public UserPage findAll(UserFilter filter, PageCriteria pageCriteria) {
         var pageable = org.springframework.data.domain.PageRequest.of(
                 pageCriteria.page(), pageCriteria.size(), Sort.by("createdAt").ascending());
