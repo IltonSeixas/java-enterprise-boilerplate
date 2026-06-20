@@ -78,6 +78,41 @@ logging:
   pattern:
     console: '%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n'
 
+resilience4j:
+  # CircuitBreaker must wrap Retry (not the reverse, which is the library's
+  # default) so that a transient failure retried successfully counts as one
+  # success, not as several individual failures inflating the failure rate.
+  circuitbreaker:
+    circuitBreakerAspectOrder: 1
+    instances:
+      redis:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 5
+      postgres:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 5
+  retry:
+    retryAspectOrder: 2
+    instances:
+      redis-read:
+        max-attempts: 3
+        wait-duration: 100ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+      postgres-read:
+        max-attempts: 3
+        wait-duration: 100ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+
 ---
 spring:
   config:

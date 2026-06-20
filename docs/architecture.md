@@ -154,10 +154,9 @@ The interface lives in `domain/repository/` — owned by the domain, not by the 
 
 ## Application Layer
 
-Each use case is a `@Service`-annotated class (Spring manages lifecycle) that receives its dependencies via constructor injection. It exposes a single public method. No Spring Data, JPA, or any infrastructure import appears here.
+Each use case is a plain Java class — no Spring annotation of any kind — that receives its dependencies via constructor injection. It exposes a single public method. No Spring, JPA, or any infrastructure import appears here. Spring never instantiates it through component scanning; instead, an explicit `@Bean` factory method in `infrastructure/config/UseCaseConfig` calls the constructor directly, so the use case itself has zero awareness that Spring exists.
 
 ```java
-@Service
 public class RegisterUserUseCase {
 
     private final UserRepository users;
@@ -179,6 +178,8 @@ public class RegisterUserUseCase {
 }
 ```
 
+Configuration values a use case needs (token expiry windows, feature flags) arrive as plain constructor parameters — primitives or domain types, never `@Value` or a Spring type. The caller (`UseCaseConfig`) resolves those values from a typed, `@Validated` `@ConfigurationProperties` record before passing them in.
+
 ---
 
 ## Infrastructure Layer
@@ -191,4 +192,10 @@ The in-memory adapter uses `ConcurrentHashMap` and is production-equivalent for 
 
 ## Architecture Enforcement
 
-The dependency rule — domain and application code must never import Spring, JPA, gRPC, or any other infrastructure concern — is enforced through code review and package boundaries rather than an automated architecture-test tool. Keeping `domain/` and `application/` free of framework imports is a non-negotiable contribution standard (see [contributing.md](contributing.md)); any pull request that violates it is rejected at review time.
+The dependency rule — domain and application code must never import Spring, JPA, gRPC, or any other infrastructure concern — is enforced automatically by `LayeredArchitectureTest` (ArchUnit), which fails the build if a use case or domain class depends on a framework package. See [ADR-0006](adr/0006-archunit-architecture-tests.md) and [contributing.md](contributing.md) for details.
+
+---
+
+## Build Target
+
+This project runs as a standard JVM application; GraalVM Native Image is deliberately not adopted. The gRPC starter and Resilience4j's AOP-based annotations lack the native-image reachability metadata needed for a build that doesn't silently misbehave at runtime — see [ADR-0010](adr/0010-graalvm-native-image-not-adopted.md) for the full evaluation and revisit conditions.

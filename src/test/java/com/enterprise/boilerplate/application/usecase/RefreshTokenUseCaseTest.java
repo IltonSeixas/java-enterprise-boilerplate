@@ -2,7 +2,10 @@ package com.enterprise.boilerplate.application.usecase;
 
 import com.enterprise.boilerplate.application.dto.AuthResponse;
 import com.enterprise.boilerplate.application.dto.RefreshTokenRequest;
+import com.enterprise.boilerplate.application.port.out.AuditPort;
 import com.enterprise.boilerplate.application.port.out.TokenServicePort;
+import com.enterprise.boilerplate.domain.audit.AuditEvent;
+import com.enterprise.boilerplate.domain.audit.AuditEventType;
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.exception.InactiveUserException;
 import com.enterprise.boilerplate.domain.exception.InvalidTokenException;
@@ -13,6 +16,7 @@ import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -39,8 +43,11 @@ class RefreshTokenUseCaseTest {
     @Mock
     private TokenServicePort tokenService;
 
+    @Mock
+    private AuditPort audit;
+
     private RefreshTokenUseCase newUseCase() {
-        return new RefreshTokenUseCase(userRepository, tokenService, ACCESS_TOKEN_EXPIRY_MINUTES);
+        return new RefreshTokenUseCase(userRepository, tokenService, audit, ACCESS_TOKEN_EXPIRY_MINUTES);
     }
 
     private User activeUser() {
@@ -84,10 +91,11 @@ class RefreshTokenUseCaseTest {
 
         verify(tokenService).revokeRefreshToken(REFRESH_TOKEN);
         verify(tokenService, never()).issueAccessToken(any());
+        verify(audit, never()).record(any());
     }
 
     @Test
-    void execute_withValidToken_rotatesTokenPair() {
+    void execute_withValidToken_rotatesTokenPairAndRecordsAuditEvent() {
         var useCase = newUseCase();
         User user = activeUser();
         String userId = user.getId().toString();
@@ -101,5 +109,10 @@ class RefreshTokenUseCaseTest {
         assertThat(response.accessToken()).isEqualTo("new-access-token");
         assertThat(response.refreshToken()).isEqualTo("new-refresh-token");
         verify(tokenService).revokeRefreshToken(REFRESH_TOKEN);
+
+        ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
+        verify(audit).record(captor.capture());
+        assertThat(captor.getValue().type()).isEqualTo(AuditEventType.TOKEN_REFRESHED);
+        assertThat(captor.getValue().actorUserId()).isEqualTo(userId);
     }
 }

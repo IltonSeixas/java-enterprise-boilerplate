@@ -21,7 +21,7 @@ The project adopts **Clean Architecture** in its Hexagonal / Ports & Adapters fo
 The boundary is enforced automatically by `LayeredArchitectureTest` (ArchUnit, see [ADR-0006](0006-archunit-architecture-tests.md)), not just code review:
 
 - `domain/` may not depend on any framework — no Spring, JPA, Hibernate, gRPC, JJWT, BouncyCastle, or Redis client classes.
-- `application/` may use Spring's dependency-injection annotations (`@Service`, `@Value`) to stay wireable as a singleton bean, but may not depend on persistence (JPA/Hibernate), transport (gRPC), or concrete security (JJWT, BouncyCastle, Redis) libraries.
+- `application/` may not depend on any framework either, including Spring's own DI annotations (`@Service`, `@Value`) — see [ADR-0007](0007-zero-spring-in-application-layer.md), which supersedes the DI-annotation exception originally stated here.
 
 ## Consequences
 
@@ -32,7 +32,7 @@ The boundary is enforced automatically by `LayeredArchitectureTest` (ArchUnit, s
 
 **Negative:**
 - Two entity classes (domain + JPA) per aggregate — more code to maintain.
-- Spring DI is used for lifecycle management but must not be used as a coupling mechanism inside the domain.
+- Use cases must be wired into the Spring container through an explicit composition root rather than component-scan annotations — see [ADR-0007](0007-zero-spring-in-application-layer.md) for the mechanism.
 
 ## Alternatives Considered
 

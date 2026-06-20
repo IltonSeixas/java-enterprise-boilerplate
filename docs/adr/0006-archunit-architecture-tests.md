@@ -1,7 +1,7 @@
 # ADR-0006: Enforce the Layering Rule with ArchUnit
 
 **Date:** 2026-06-19  
-**Status:** Accepted
+**Status:** Accepted (the `application/`-may-use-DI-annotations exception described below was later removed — see [ADR-0007](0007-zero-spring-in-application-layer.md))
 
 ---
 

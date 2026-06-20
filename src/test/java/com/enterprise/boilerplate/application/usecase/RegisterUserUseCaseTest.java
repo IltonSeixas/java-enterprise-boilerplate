@@ -2,7 +2,10 @@ package com.enterprise.boilerplate.application.usecase;
 
 import com.enterprise.boilerplate.application.dto.RegisterUserRequest;
 import com.enterprise.boilerplate.application.dto.UserResponse;
+import com.enterprise.boilerplate.application.port.out.AuditPort;
 import com.enterprise.boilerplate.application.port.out.PasswordHasherPort;
+import com.enterprise.boilerplate.domain.audit.AuditEvent;
+import com.enterprise.boilerplate.domain.audit.AuditEventType;
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.exception.UserAlreadyExistsException;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
@@ -10,6 +13,7 @@ import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -31,10 +35,13 @@ class RegisterUserUseCaseTest {
     @Mock
     private PasswordHasherPort passwordHasher;
 
+    @Mock
+    private AuditPort audit;
+
     private RegisterUserUseCase useCase;
 
     private RegisterUserUseCase newUseCase() {
-        return new RegisterUserUseCase(userRepository, passwordHasher);
+        return new RegisterUserUseCase(userRepository, passwordHasher, audit);
     }
 
     @Test
@@ -51,7 +58,7 @@ class RegisterUserUseCaseTest {
     }
 
     @Test
-    void execute_whenNoOwnerExists_createsFirstUserAsOwner() {
+    void execute_whenNoOwnerExists_createsFirstUserAsOwnerAndRecordsAuditEvent() {
         useCase = newUseCase();
         var request = new RegisterUserRequest("owner@example.com", "strongpassword1", "Owner");
         when(userRepository.existsByEmail(any(Email.class))).thenReturn(false);
@@ -63,10 +70,14 @@ class RegisterUserUseCaseTest {
         assertThat(response.role()).isEqualTo(User.Role.OWNER.name());
         verify(userRepository).saveFirstOwner(any(User.class));
         verify(userRepository, never()).save(any());
+
+        ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
+        verify(audit).record(captor.capture());
+        assertThat(captor.getValue().type()).isEqualTo(AuditEventType.USER_REGISTERED);
     }
 
     @Test
-    void execute_whenOwnerAlreadyExists_createsUserWithMemberRole() {
+    void execute_whenOwnerAlreadyExists_createsUserWithMemberRoleAndRecordsAuditEvent() {
         useCase = newUseCase();
         var request = new RegisterUserRequest("member@example.com", "strongpassword1", "Member");
         when(userRepository.existsByEmail(any(Email.class))).thenReturn(false);
@@ -78,5 +89,9 @@ class RegisterUserUseCaseTest {
         assertThat(response.role()).isEqualTo(User.Role.USER.name());
         verify(userRepository).save(any(User.class));
         verify(userRepository, never()).saveFirstOwner(any());
+
+        ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
+        verify(audit).record(captor.capture());
+        assertThat(captor.getValue().type()).isEqualTo(AuditEventType.USER_REGISTERED);
     }
 }
