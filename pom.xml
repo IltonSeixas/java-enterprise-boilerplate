@@ -207,6 +207,13 @@
             <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Typed configuration properties metadata (IDE autocomplete, no runtime footprint) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
     <build>

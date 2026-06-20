@@ -4,6 +4,7 @@ import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
 import com.enterprise.boilerplate.infrastructure.cache.RedisTokenStore;
+import com.enterprise.boilerplate.config.properties.JwtProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -80,12 +81,12 @@ class JwtTokenServiceTest {
         Files.writeString(privateKeyPath, toPem("PRIVATE KEY", keyPair.getPrivate().getEncoded()), StandardCharsets.US_ASCII);
         Files.writeString(publicKeyPath, toPem("PUBLIC KEY", keyPair.getPublic().getEncoded()), StandardCharsets.US_ASCII);
 
-        return new JwtTokenService(
+        JwtProperties jwtProperties = new JwtProperties(
                 privateKeyPath.toString(),
                 publicKeyPath.toString(),
                 ACCESS_TOKEN_EXPIRY_MINUTES,
-                REFRESH_TOKEN_EXPIRY_DAYS,
-                tokenStore);
+                REFRESH_TOKEN_EXPIRY_DAYS);
+        return new JwtTokenService(jwtProperties, tokenStore);
     }
 
     private static KeyPair generateKeyPair() throws NoSuchAlgorithmException {

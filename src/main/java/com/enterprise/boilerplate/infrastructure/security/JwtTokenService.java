@@ -4,10 +4,10 @@ import com.enterprise.boilerplate.application.port.out.TokenServicePort;
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.exception.InvalidTokenException;
 import com.enterprise.boilerplate.infrastructure.cache.RedisTokenStore;
+import com.enterprise.boilerplate.config.properties.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -44,16 +44,11 @@ public class JwtTokenService implements TokenServicePort {
     private volatile PrivateKey signingKey;
     private volatile PublicKey verificationKey;
 
-    public JwtTokenService(
-            @Value("${jwt.private-key-path}") String privateKeyPath,
-            @Value("${jwt.public-key-path}") String publicKeyPath,
-            @Value("${jwt.access-token-expiry-minutes:15}") long accessTokenExpiryMinutes,
-            @Value("${jwt.refresh-token-expiry-days:7}") long refreshTokenExpiryDays,
-            RedisTokenStore tokenStore) {
-        this.privateKeyPath = Path.of(privateKeyPath);
-        this.publicKeyPath = Path.of(publicKeyPath);
-        this.accessTokenTtlSeconds = accessTokenExpiryMinutes * 60;
-        this.refreshTokenTtlSeconds = refreshTokenExpiryDays * 86400;
+    public JwtTokenService(JwtProperties jwtProperties, RedisTokenStore tokenStore) {
+        this.privateKeyPath = Path.of(jwtProperties.privateKeyPath());
+        this.publicKeyPath = Path.of(jwtProperties.publicKeyPath());
+        this.accessTokenTtlSeconds = jwtProperties.accessTokenExpiryMinutes() * 60;
+        this.refreshTokenTtlSeconds = jwtProperties.refreshTokenExpiryDays() * 86400;
         this.tokenStore = tokenStore;
     }
 
