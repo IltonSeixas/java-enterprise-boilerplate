@@ -56,7 +56,8 @@ grpc:
     port: ${GRPC_PORT:50051}
 
 jwt:
-  secret: ${JWT_SECRET:change-this-secret-in-production-min-32-chars!!}
+  private-key-path: ${JWT_PRIVATE_KEY_PATH:jwt_private.pem}
+  public-key-path: ${JWT_PUBLIC_KEY_PATH:jwt_public.pem}
   access-token-expiry-minutes: ${JWT_ACCESS_EXPIRY_MINUTES:15}
   refresh-token-expiry-days: ${JWT_REFRESH_EXPIRY_DAYS:7}
 

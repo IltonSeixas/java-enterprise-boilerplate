@@ -10,10 +10,14 @@ services:
       SPRING_DATASOURCE_USERNAME: boilerplate
       SPRING_DATASOURCE_PASSWORD: boilerplate
       SPRING_DATA_REDIS_URL: redis://redis:6379
-      JWT_SECRET: dev-secret-change-in-production-min-32-chars
+      JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private.pem
+      JWT_PUBLIC_KEY_PATH: /run/secrets/jwt_public.pem
       LOGGING_LEVEL_ROOT: INFO
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
       OTEL_SERVICE_NAME: java-enterprise-boilerplate
+    volumes:
+      - ./jwt_private.pem:/run/secrets/jwt_private.pem:ro
+      - ./jwt_public.pem:/run/secrets/jwt_public.pem:ro
     depends_on:
       postgres:
         condition: service_healthy
