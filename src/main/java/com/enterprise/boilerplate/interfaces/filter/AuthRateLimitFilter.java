@@ -1,10 +1,10 @@
 package com.enterprise.boilerplate.interfaces.filter;
 
+import com.enterprise.boilerplate.config.properties.RateLimitProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -33,9 +33,8 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
     private final ConcurrentHashMap<String, Window> windows = new ConcurrentHashMap<>();
     private final AtomicLong lastSweep = new AtomicLong(System.currentTimeMillis());
 
-    public AuthRateLimitFilter(
-            @Value("${app.rate-limit.trust-forwarded-headers:false}") boolean trustForwardedHeaders) {
-        this.trustForwardedHeaders = trustForwardedHeaders;
+    public AuthRateLimitFilter(RateLimitProperties rateLimitProperties) {
+        this.trustForwardedHeaders = rateLimitProperties.trustForwardedHeaders();
     }
 
     @Override

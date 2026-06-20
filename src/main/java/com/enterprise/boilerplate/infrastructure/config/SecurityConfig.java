@@ -1,7 +1,7 @@
 package com.enterprise.boilerplate.infrastructure.config;
 
+import com.enterprise.boilerplate.config.properties.SecurityProperties;
 import com.enterprise.boilerplate.infrastructure.security.JwtAuthenticationFilter;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +20,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -30,11 +29,9 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final List<String> allowedOrigins;
 
-    public SecurityConfig(
-            JwtAuthenticationFilter jwtAuthenticationFilter,
-            @Value("${security.cors.allowed-origins:http://localhost:3000}") String allowedOriginsRaw) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, SecurityProperties securityProperties) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.allowedOrigins = Arrays.asList(allowedOriginsRaw.split(","));
+        this.allowedOrigins = securityProperties.cors().allowedOrigins();
     }
 
     @Bean
