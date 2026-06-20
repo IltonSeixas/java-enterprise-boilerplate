@@ -6,9 +6,7 @@ import com.enterprise.boilerplate.domain.exception.ForbiddenException;
 import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
-import org.springframework.stereotype.Service;
 
-@Service
 public class GetUserUseCase {
 
     private final UserRepository userRepository;
