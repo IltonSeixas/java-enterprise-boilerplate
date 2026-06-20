@@ -2,11 +2,14 @@ package com.enterprise.boilerplate.interfaces.rest;
 
 import com.enterprise.boilerplate.application.dto.ChangePasswordRequest;
 import com.enterprise.boilerplate.application.dto.ChangeRoleRequest;
+import com.enterprise.boilerplate.application.dto.ListUsersRequest;
+import com.enterprise.boilerplate.application.dto.PageResponse;
 import com.enterprise.boilerplate.application.dto.UpdateProfileRequest;
 import com.enterprise.boilerplate.application.dto.UserResponse;
 import com.enterprise.boilerplate.application.usecase.ChangePasswordUseCase;
 import com.enterprise.boilerplate.application.usecase.ChangeUserRoleUseCase;
 import com.enterprise.boilerplate.application.usecase.GetUserUseCase;
+import com.enterprise.boilerplate.application.usecase.ListUsersUseCase;
 import com.enterprise.boilerplate.application.usecase.UpdateProfileUseCase;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -26,15 +30,18 @@ public class UserController {
     private final UpdateProfileUseCase updateProfileUseCase;
     private final ChangePasswordUseCase changePasswordUseCase;
     private final ChangeUserRoleUseCase changeUserRoleUseCase;
+    private final ListUsersUseCase listUsersUseCase;
 
     public UserController(GetUserUseCase getUserUseCase,
                           UpdateProfileUseCase updateProfileUseCase,
                           ChangePasswordUseCase changePasswordUseCase,
-                          ChangeUserRoleUseCase changeUserRoleUseCase) {
+                          ChangeUserRoleUseCase changeUserRoleUseCase,
+                          ListUsersUseCase listUsersUseCase) {
         this.getUserUseCase = getUserUseCase;
         this.updateProfileUseCase = updateProfileUseCase;
         this.changePasswordUseCase = changePasswordUseCase;
         this.changeUserRoleUseCase = changeUserRoleUseCase;
+        this.listUsersUseCase = listUsersUseCase;
     }
 
     @GetMapping("/me")
@@ -47,6 +54,18 @@ public class UserController {
     public ResponseEntity<UserResponse> getById(@PathVariable String id, Authentication authentication) {
         String requesterId = (String) authentication.getPrincipal();
         return ResponseEntity.ok(getUserUseCase.execute(id, requesterId));
+    }
+
+    @GetMapping
+    public ResponseEntity<PageResponse<UserResponse>> list(@RequestParam(required = false) String role,
+                                                            @RequestParam(required = false) Boolean active,
+                                                            @RequestParam(required = false) String name,
+                                                            @RequestParam(defaultValue = "0") int page,
+                                                            @RequestParam(defaultValue = "20") int size,
+                                                            Authentication authentication) {
+        String callerId = (String) authentication.getPrincipal();
+        var request = new ListUsersRequest(role, active, name, page, size);
+        return ResponseEntity.ok(listUsersUseCase.execute(callerId, request));
     }
 
     @PutMapping("/me")

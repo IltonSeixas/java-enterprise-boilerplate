@@ -2,6 +2,9 @@ package com.enterprise.boilerplate.application.usecase;
 
 import com.enterprise.boilerplate.application.dto.ChangeRoleRequest;
 import com.enterprise.boilerplate.application.dto.UserResponse;
+import com.enterprise.boilerplate.application.port.out.AuditPort;
+import com.enterprise.boilerplate.domain.audit.AuditEvent;
+import com.enterprise.boilerplate.domain.audit.AuditEventType;
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.exception.InsufficientPermissionsException;
 import com.enterprise.boilerplate.domain.exception.InvalidRoleException;
@@ -12,6 +15,7 @@ import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -30,8 +34,11 @@ class ChangeUserRoleUseCaseTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private AuditPort audit;
+
     private ChangeUserRoleUseCase newUseCase() {
-        return new ChangeUserRoleUseCase(userRepository);
+        return new ChangeUserRoleUseCase(userRepository, audit);
     }
 
     private User userWithRole(User.Role role) {
@@ -101,7 +108,7 @@ class ChangeUserRoleUseCaseTest {
     }
 
     @Test
-    void execute_whenOwnerChangesAnotherUsersRole_updatesAndPersists() {
+    void execute_whenOwnerChangesAnotherUsersRole_updatesPersistsAndRecordsAuditEvent() {
         var useCase = newUseCase();
         User owner = userWithRole(User.Role.OWNER);
         User target = userWithRole(User.Role.USER);
@@ -114,5 +121,11 @@ class ChangeUserRoleUseCaseTest {
         assertThat(response.role()).isEqualTo("ADMIN");
         assertThat(target.getRole()).isEqualTo(User.Role.ADMIN);
         verify(userRepository).save(target);
+
+        ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
+        verify(audit).record(captor.capture());
+        assertThat(captor.getValue().type()).isEqualTo(AuditEventType.ROLE_CHANGED);
+        assertThat(captor.getValue().actorUserId()).isEqualTo(owner.getId().toString());
+        assertThat(captor.getValue().targetUserId()).isEqualTo(target.getId().toString());
     }
 }

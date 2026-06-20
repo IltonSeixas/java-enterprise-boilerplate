@@ -51,8 +51,9 @@ These are two separate secret stores. Dependabot-triggered workflow runs do **no
 
 ### Architecture
 
-- `domain/` must never depend on any framework — not Spring, not JPA/Hibernate, not gRPC, not JJWT, not BouncyCastle, not a Redis client. Domain objects are constructed with `new`, never injected.
-- `application/` may use Spring's dependency-injection annotations (`@Service`, `@Value`) but must never depend on JPA/Hibernate, gRPC, JJWT, BouncyCastle, or a Redis client
+- `domain/` and `application/` must never depend on any framework — not Spring, not JPA/Hibernate, not gRPC, not JJWT, not BouncyCastle, not a Redis client. Both layers are constructed with `new`, never injected via `@Service`/`@Value`/`@Component`.
+- Use cases are plain classes with a constructor and an `execute(...)` method, nothing else. Spring wires them by calling that constructor explicitly from an `@Bean` factory method in an infrastructure `@Configuration` class (see `UseCaseConfig`) — the use case itself never knows Spring exists.
+- Configuration values (timeouts, expiry windows, feature flags) reach use cases as plain constructor parameters, sourced from a typed, `@Validated` `@ConfigurationProperties` record defined in `infrastructure`/`config` — never from `@Value` inside the use case.
 - These rules are enforced automatically by `LayeredArchitectureTest` (ArchUnit) — see [ADR-0006](adr/0006-archunit-architecture-tests.md). A PR that violates them fails `./mvnw test`
 - Every new use case must have a corresponding `*Test.java` file
 - Every new value object must validate its invariants in the constructor and have tests for both valid and invalid inputs

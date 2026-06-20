@@ -9,11 +9,11 @@ import com.enterprise.boilerplate.application.usecase.LogoutUseCase;
 import com.enterprise.boilerplate.application.usecase.RefreshTokenUseCase;
 import com.enterprise.boilerplate.application.usecase.RegisterUserUseCase;
 import com.enterprise.boilerplate.application.dto.RefreshTokenRequest;
+import com.enterprise.boilerplate.config.properties.JwtProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -44,12 +44,12 @@ public class AuthController {
             LoginUserUseCase loginUserUseCase,
             RefreshTokenUseCase refreshTokenUseCase,
             LogoutUseCase logoutUseCase,
-            @Value("${jwt.refresh-token-expiry-days:7}") int refreshTokenTtlDays) {
+            JwtProperties jwtProperties) {
         this.registerUserUseCase = registerUserUseCase;
         this.loginUserUseCase = loginUserUseCase;
         this.refreshTokenUseCase = refreshTokenUseCase;
         this.logoutUseCase = logoutUseCase;
-        this.refreshTokenTtlDays = refreshTokenTtlDays;
+        this.refreshTokenTtlDays = (int) jwtProperties.refreshTokenExpiryDays();
     }
 
     @PostMapping("/register")

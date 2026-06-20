@@ -1,8 +1,11 @@
 package com.enterprise.boilerplate.application.usecase;
 
 import com.enterprise.boilerplate.application.dto.ChangePasswordRequest;
+import com.enterprise.boilerplate.application.port.out.AuditPort;
 import com.enterprise.boilerplate.application.port.out.PasswordHasherPort;
 import com.enterprise.boilerplate.application.port.out.TokenServicePort;
+import com.enterprise.boilerplate.domain.audit.AuditEvent;
+import com.enterprise.boilerplate.domain.audit.AuditEventType;
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.exception.InvalidPasswordException;
 import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
@@ -12,6 +15,7 @@ import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -40,8 +44,11 @@ class ChangePasswordUseCaseTest {
     @Mock
     private TokenServicePort tokenService;
 
+    @Mock
+    private AuditPort audit;
+
     private ChangePasswordUseCase newUseCase() {
-        return new ChangePasswordUseCase(userRepository, passwordHasher, tokenService);
+        return new ChangePasswordUseCase(userRepository, passwordHasher, tokenService, audit);
     }
 
     private User existingUser() {
@@ -72,10 +79,11 @@ class ChangePasswordUseCaseTest {
 
         verify(userRepository, never()).save(user);
         verify(tokenService, never()).revokeAllRefreshTokens(anyString());
+        verify(audit, never()).record(org.mockito.ArgumentMatchers.any());
     }
 
     @Test
-    void execute_withValidCurrentPassword_updatesHashAndRevokesAllSessions() {
+    void execute_withValidCurrentPassword_updatesHashRevokesAllSessionsAndRecordsAuditEvent() {
         var useCase = newUseCase();
         User user = existingUser();
         String userId = user.getId().toString();
@@ -89,5 +97,10 @@ class ChangePasswordUseCaseTest {
         assertThat(user.getPasswordHash()).isEqualTo(NEW_HASH);
         verify(userRepository).save(user);
         verify(tokenService).revokeAllRefreshTokens(userId);
+
+        ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
+        verify(audit).record(captor.capture());
+        assertThat(captor.getValue().type()).isEqualTo(AuditEventType.PASSWORD_CHANGED);
+        assertThat(captor.getValue().actorUserId()).isEqualTo(userId);
     }
 }

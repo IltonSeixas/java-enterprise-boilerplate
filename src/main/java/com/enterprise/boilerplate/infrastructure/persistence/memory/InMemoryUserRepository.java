@@ -2,12 +2,17 @@ package com.enterprise.boilerplate.infrastructure.persistence.memory;
 
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.exception.UserAlreadyExistsException;
+import com.enterprise.boilerplate.domain.repository.PageCriteria;
+import com.enterprise.boilerplate.domain.repository.UserFilter;
+import com.enterprise.boilerplate.domain.repository.UserPage;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,5 +63,21 @@ public class InMemoryUserRepository implements UserRepository {
         } finally {
             firstOwnerLock.unlock();
         }
+    }
+
+    @Override
+    public UserPage findAll(UserFilter filter, PageCriteria pageCriteria) {
+        List<User> matched = store.values().stream()
+                .filter(u -> filter.role() == null || u.getRole() == filter.role())
+                .filter(u -> filter.active() == null || u.isActive() == filter.active())
+                .filter(u -> filter.nameContains() == null
+                        || u.getName().toLowerCase().contains(filter.nameContains().toLowerCase()))
+                .sorted(Comparator.comparing(User::getCreatedAt))
+                .toList();
+
+        int from = Math.min(pageCriteria.page() * pageCriteria.size(), matched.size());
+        int to = Math.min(from + pageCriteria.size(), matched.size());
+
+        return new UserPage(matched.subList(from, to), matched.size());
     }
 }

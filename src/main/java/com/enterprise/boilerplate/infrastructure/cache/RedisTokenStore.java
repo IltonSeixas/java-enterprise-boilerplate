@@ -1,5 +1,7 @@
 package com.enterprise.boilerplate.infrastructure.cache;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Component;
@@ -17,18 +19,23 @@ public class RedisTokenStore {
         this.redisTemplate = redisTemplate;
     }
 
+    @CircuitBreaker(name = "redis")
     public void set(String key, String value, long ttlSeconds) {
         redisTemplate.opsForValue().set(key, value, Duration.ofSeconds(ttlSeconds));
     }
 
+    @CircuitBreaker(name = "redis")
+    @Retry(name = "redis-read")
     public Optional<String> get(String key) {
         return Optional.ofNullable(redisTemplate.opsForValue().get(key));
     }
 
+    @CircuitBreaker(name = "redis")
     public void delete(String key) {
         redisTemplate.delete(key);
     }
 
+    @CircuitBreaker(name = "redis")
     public void deleteByPattern(String pattern, Consumer<String> perKey) {
         redisTemplate.executeWithStickyConnection(connection -> {
             ScanOptions opts = ScanOptions.scanOptions().match(pattern).count(100).build();

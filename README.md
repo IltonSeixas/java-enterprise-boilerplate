@@ -133,6 +133,10 @@ The `PasswordHasher` output port in `application/port/out/` abstracts the algori
 - Input validation: Jakarta Bean Validation on all DTOs — invalid input returns 400 before reaching the use case
 - CSRF: stateless endpoints authenticate via the `Authorization` bearer header and are exempt. `/api/v1/auth/refresh` and `/api/v1/auth/logout` authenticate via the `refresh_token` cookie and require the `X-XSRF-TOKEN` header, read from the `XSRF-TOKEN` cookie set by the server
 
+### Audit Logging
+
+Every identity- and access-sensitive use case (registration, login success/failure, password change, role change, logout, token refresh) records an immutable `AuditEvent` through the `AuditPort` output port — see [ADR-0009](docs/adr/0009-domain-audit-log.md). The in-memory adapter is the zero-config default; the PostgreSQL adapter persists to a dedicated `audit_log` table and never fails the use case it observes, degrading gracefully if the audit store itself is unavailable.
+
 ---
 
 ## API
@@ -149,9 +153,15 @@ The `PasswordHasher` output port in `application/port/out/` abstracts the algori
 | `PUT` | `/api/v1/users/me` | Update authenticated user profile |
 | `PUT` | `/api/v1/users/me/password` | Change authenticated user password |
 | `GET` | `/api/v1/users/{id}` | Get a user by id |
+| `GET` | `/api/v1/users` | List users with filtering and pagination (Admin/Owner only) |
 | `PUT` | `/api/v1/users/{id}/role` | Change a user's role (Owner only, cannot change own role) |
 | `GET` | `/actuator/health` | Health check (Spring Actuator) |
+| `GET` | `/actuator/info` | Build metadata (artifact, version, build time) — requires authentication |
 | `GET` | `/actuator/prometheus` | Prometheus metrics |
+
+`GET /api/v1/users` accepts `role`, `active`, `name`, `page` (default `0`) and `size` (default `20`, max `100`) query parameters. Filtering and pagination are translated to a JPA `Specification` and `Pageable` at the persistence adapter — the domain and application layers only see framework-agnostic `UserFilter`/`PageCriteria`/`UserPage` types.
+
+`/actuator/health` aggregates the auto-configured `db`, `redis`, `diskSpace` and `ssl` indicators with three custom ones: `jwtKeys` (JWT signing key pair readability), `grpcServer` (embedded gRPC server liveness, also propagated to the standard `grpc.health.v1.Health` service so `grpc_health_probe` and `/actuator/health` always agree) and `auditLog` (Postgres audit log reachability, `postgres` profile only). See [docs/observability.md](docs/observability.md#health-checks) for details.
 
 ### gRPC — `localhost:50051`
 
@@ -221,6 +231,10 @@ management:
     tracing:
       endpoint: http://localhost:4318/v1/traces
 ```
+
+### Resilience
+
+The PostgreSQL and Redis adapters are each wrapped in a dedicated Resilience4j circuit breaker (`postgres`, `redis`), with retry applied only to read paths (`postgres-read`, `redis-read`) — never to writes, to avoid double-applying a write whose response was lost in transit. The circuit breaker is configured as the outer aspect and retry as the inner one, so a transient failure that succeeds on retry counts as a single success against the breaker's failure rate — see [ADR-0008](docs/adr/0008-resilience4j-fault-tolerance.md).
 
 ---
 

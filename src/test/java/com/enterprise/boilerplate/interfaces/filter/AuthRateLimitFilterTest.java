@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.interfaces.filter;
 
+import com.enterprise.boilerplate.config.properties.RateLimitProperties;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -14,7 +15,7 @@ class AuthRateLimitFilterTest {
 
     @Test
     void shouldNotFilter_returnsTrue_forNonAuthPaths() {
-        var filter = new AuthRateLimitFilter(false);
+        var filter = new AuthRateLimitFilter(new RateLimitProperties(false));
         var request = new MockHttpServletRequest("GET", "/api/v1/users/me");
         request.setServletPath("/api/v1/users/me");
 
@@ -23,7 +24,7 @@ class AuthRateLimitFilterTest {
 
     @Test
     void shouldNotFilter_returnsFalse_forAuthPaths() {
-        var filter = new AuthRateLimitFilter(false);
+        var filter = new AuthRateLimitFilter(new RateLimitProperties(false));
         var request = new MockHttpServletRequest("POST", "/api/v1/auth/login");
         request.setServletPath("/api/v1/auth/login");
 
@@ -32,7 +33,7 @@ class AuthRateLimitFilterTest {
 
     @Test
     void shouldNotFilter_usesNormalizedServletPath_notRawUri() {
-        var filter = new AuthRateLimitFilter(false);
+        var filter = new AuthRateLimitFilter(new RateLimitProperties(false));
         var request = new MockHttpServletRequest("POST", "/api/v1/auth/login;jsessionid=abc");
         request.setServletPath("/api/v1/auth/login");
 
@@ -41,7 +42,7 @@ class AuthRateLimitFilterTest {
 
     @Test
     void doFilterInternal_allowsRequestsUnderLimit() throws Exception {
-        var filter = new AuthRateLimitFilter(false);
+        var filter = new AuthRateLimitFilter(new RateLimitProperties(false));
         FilterChain chain = mock(FilterChain.class);
 
         for (int i = 0; i < 10; i++) {
@@ -61,7 +62,7 @@ class AuthRateLimitFilterTest {
 
     @Test
     void doFilterInternal_blocksRequestsOverLimit() throws Exception {
-        var filter = new AuthRateLimitFilter(false);
+        var filter = new AuthRateLimitFilter(new RateLimitProperties(false));
         FilterChain chain = mock(FilterChain.class);
 
         MockHttpServletResponse lastResponse = null;
@@ -80,7 +81,7 @@ class AuthRateLimitFilterTest {
 
     @Test
     void resolveClientIp_ignoresForwardedHeader_whenNotTrusted() throws Exception {
-        var filter = new AuthRateLimitFilter(false);
+        var filter = new AuthRateLimitFilter(new RateLimitProperties(false));
         FilterChain chain = mock(FilterChain.class);
 
         var spoofed = new MockHttpServletRequest("POST", "/api/v1/auth/login");
@@ -105,7 +106,7 @@ class AuthRateLimitFilterTest {
 
     @Test
     void resolveClientIp_usesForwardedHeader_whenTrusted() throws Exception {
-        var filter = new AuthRateLimitFilter(true);
+        var filter = new AuthRateLimitFilter(new RateLimitProperties(true));
         FilterChain chain = mock(FilterChain.class);
 
         for (int i = 0; i < 10; i++) {
