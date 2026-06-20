@@ -19,4 +19,6 @@ public interface UserRepository {
     boolean hasOwner();
 
     void saveFirstOwner(User user);
+
+    UserPage findAll(UserFilter filter, PageCriteria pageCriteria);
 }

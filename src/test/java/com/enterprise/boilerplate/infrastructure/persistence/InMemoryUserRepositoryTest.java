@@ -2,6 +2,8 @@ package com.enterprise.boilerplate.infrastructure.persistence;
 
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.exception.UserAlreadyExistsException;
+import com.enterprise.boilerplate.domain.repository.PageCriteria;
+import com.enterprise.boilerplate.domain.repository.UserFilter;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
 import com.enterprise.boilerplate.infrastructure.persistence.memory.InMemoryUserRepository;
@@ -94,5 +96,68 @@ class InMemoryUserRepositoryTest {
         assertThat(successes.get()).isEqualTo(1);
         assertThat(failures.get()).isEqualTo(1);
         assertThat(repository.hasOwner()).isTrue();
+    }
+
+    @Test
+    void findAll_withRoleFilter_returnsOnlyMatchingUsers() {
+        repository.save(User.create(Email.of("admin@example.com"), HASH, "Admin", User.Role.ADMIN));
+        repository.save(User.create(Email.of("user@example.com"), HASH, "Regular", User.Role.USER));
+
+        var page = repository.findAll(new UserFilter(User.Role.ADMIN, null, null), new PageCriteria(0, 10));
+
+        assertThat(page.content()).hasSize(1);
+        assertThat(page.content().get(0).getRole()).isEqualTo(User.Role.ADMIN);
+        assertThat(page.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void findAll_withNameFilter_isCaseInsensitiveSubstringMatch() {
+        repository.save(User.create(Email.of("alice@example.com"), HASH, "Alice Wonderland", User.Role.USER));
+        repository.save(User.create(Email.of("bob@example.com"), HASH, "Bob Builder", User.Role.USER));
+
+        var page = repository.findAll(new UserFilter(null, null, "ALICE"), new PageCriteria(0, 10));
+
+        assertThat(page.content()).hasSize(1);
+        assertThat(page.content().get(0).getName()).isEqualTo("Alice Wonderland");
+    }
+
+    @Test
+    void findAll_withActiveFilter_returnsOnlyActiveOrInactiveAsRequested() {
+        User active = User.create(Email.of("active@example.com"), HASH, "Active", User.Role.USER);
+        User inactive = User.create(Email.of("inactive@example.com"), HASH, "Inactive", User.Role.USER);
+        inactive.deactivate();
+        repository.save(active);
+        repository.save(inactive);
+
+        var page = repository.findAll(new UserFilter(null, false, null), new PageCriteria(0, 10));
+
+        assertThat(page.content()).hasSize(1);
+        assertThat(page.content().get(0).getName()).isEqualTo("Inactive");
+    }
+
+    @Test
+    void findAll_pagesResultsAccordingToPageCriteria() {
+        for (int i = 0; i < 5; i++) {
+            repository.save(User.create(Email.of("user" + i + "@example.com"), HASH, "User" + i, User.Role.USER));
+        }
+
+        var firstPage = repository.findAll(UserFilter.all(), new PageCriteria(0, 2));
+        var secondPage = repository.findAll(UserFilter.all(), new PageCriteria(1, 2));
+        var thirdPage = repository.findAll(UserFilter.all(), new PageCriteria(2, 2));
+
+        assertThat(firstPage.content()).hasSize(2);
+        assertThat(secondPage.content()).hasSize(2);
+        assertThat(thirdPage.content()).hasSize(1);
+        assertThat(firstPage.totalElements()).isEqualTo(5);
+    }
+
+    @Test
+    void findAll_withPageBeyondResults_returnsEmptyContent() {
+        repository.save(User.create(Email.of("solo@example.com"), HASH, "Solo", User.Role.USER));
+
+        var page = repository.findAll(UserFilter.all(), new PageCriteria(5, 10));
+
+        assertThat(page.content()).isEmpty();
+        assertThat(page.totalElements()).isEqualTo(1);
     }
 }
