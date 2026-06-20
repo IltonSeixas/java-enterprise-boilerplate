@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.interfaces.grpc;
 
+import com.enterprise.boilerplate.application.port.out.AuditPort;
 import com.enterprise.boilerplate.application.port.out.PasswordHasherPort;
 import com.enterprise.boilerplate.application.port.out.TokenServicePort;
 import com.enterprise.boilerplate.application.usecase.ChangePasswordUseCase;
@@ -63,16 +64,17 @@ class GrpcServerIntegrationTest {
         UserRepository userRepository = new InMemoryUserRepository();
         PasswordHasherPort hasher = new PlainTextHasher();
         tokenService = new FakeTokenService();
+        AuditPort audit = event -> { };
         long accessTokenExpiryMinutes = 15;
 
-        var registerUser = new RegisterUserUseCase(userRepository, hasher);
-        var loginUser = new LoginUserUseCase(userRepository, hasher, tokenService, accessTokenExpiryMinutes);
-        var refreshToken = new RefreshTokenUseCase(userRepository, tokenService, accessTokenExpiryMinutes);
-        var logoutUser = new LogoutUseCase(tokenService);
+        var registerUser = new RegisterUserUseCase(userRepository, hasher, audit);
+        var loginUser = new LoginUserUseCase(userRepository, hasher, tokenService, audit, accessTokenExpiryMinutes);
+        var refreshToken = new RefreshTokenUseCase(userRepository, tokenService, audit, accessTokenExpiryMinutes);
+        var logoutUser = new LogoutUseCase(tokenService, audit);
         var getUser = new GetUserUseCase(userRepository);
         var updateProfile = new UpdateProfileUseCase(userRepository);
-        var changePassword = new ChangePasswordUseCase(userRepository, hasher, tokenService);
-        var changeUserRole = new ChangeUserRoleUseCase(userRepository);
+        var changePassword = new ChangePasswordUseCase(userRepository, hasher, tokenService, audit);
+        var changeUserRole = new ChangeUserRoleUseCase(userRepository, audit);
 
         server = InProcessServerBuilder.forName(SERVER_NAME)
                 .directExecutor()
