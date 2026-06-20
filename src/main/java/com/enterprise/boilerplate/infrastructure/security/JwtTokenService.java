@@ -7,12 +7,22 @@ import com.enterprise.boilerplate.infrastructure.cache.RedisTokenStore;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.SecretKey;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,18 +33,25 @@ public class JwtTokenService implements TokenServicePort {
     private static final String ROLE_CLAIM = "role";
     private static final String REFRESH_KEY_PREFIX = "refresh:";
     private static final String USER_REFRESH_PREFIX = "user-refresh:";
+    private static final String KEY_ALGORITHM = "Ed25519";
 
-    private final SecretKey signingKey;
+    private final Path privateKeyPath;
+    private final Path publicKeyPath;
     private final long accessTokenTtlSeconds;
     private final long refreshTokenTtlSeconds;
     private final RedisTokenStore tokenStore;
 
+    private volatile PrivateKey signingKey;
+    private volatile PublicKey verificationKey;
+
     public JwtTokenService(
-            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.private-key-path}") String privateKeyPath,
+            @Value("${jwt.public-key-path}") String publicKeyPath,
             @Value("${jwt.access-token-expiry-minutes:15}") long accessTokenExpiryMinutes,
             @Value("${jwt.refresh-token-expiry-days:7}") long refreshTokenExpiryDays,
             RedisTokenStore tokenStore) {
-        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.privateKeyPath = Path.of(privateKeyPath);
+        this.publicKeyPath = Path.of(publicKeyPath);
         this.accessTokenTtlSeconds = accessTokenExpiryMinutes * 60;
         this.refreshTokenTtlSeconds = refreshTokenExpiryDays * 86400;
         this.tokenStore = tokenStore;
@@ -48,7 +65,7 @@ public class JwtTokenService implements TokenServicePort {
                 .claim(ROLE_CLAIM, user.getRole().name())
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + accessTokenTtlSeconds * 1000))
-                .signWith(signingKey)
+                .signWith(signingKey())
                 .compact();
     }
 
@@ -67,7 +84,7 @@ public class JwtTokenService implements TokenServicePort {
     public Optional<String> validateAccessToken(String token) {
         try {
             Claims claims = Jwts.parser()
-                    .verifyWith(signingKey)
+                    .verifyWith(verificationKey())
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
@@ -103,7 +120,7 @@ public class JwtTokenService implements TokenServicePort {
     public String extractRole(String token) {
         try {
             return Jwts.parser()
-                    .verifyWith(signingKey)
+                    .verifyWith(verificationKey())
                     .build()
                     .parseSignedClaims(token)
                     .getPayload()
@@ -111,5 +128,67 @@ public class JwtTokenService implements TokenServicePort {
         } catch (JwtException | IllegalArgumentException e) {
             throw new InvalidTokenException();
         }
+    }
+
+    private PrivateKey signingKey() {
+        PrivateKey key = signingKey;
+        if (key == null) {
+            synchronized (this) {
+                key = signingKey;
+                if (key == null) {
+                    key = signingKey = loadPrivateKey(privateKeyPath);
+                }
+            }
+        }
+        return key;
+    }
+
+    private PublicKey verificationKey() {
+        PublicKey key = verificationKey;
+        if (key == null) {
+            synchronized (this) {
+                key = verificationKey;
+                if (key == null) {
+                    key = verificationKey = loadPublicKey(publicKeyPath);
+                }
+            }
+        }
+        return key;
+    }
+
+    private static PrivateKey loadPrivateKey(Path path) {
+        byte[] der = decodePem(readPem(path));
+        try {
+            KeyFactory keyFactory = KeyFactory.getInstance(KEY_ALGORITHM);
+            return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(der));
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new IllegalStateException("Failed to load JWT private key from " + path, e);
+        }
+    }
+
+    private static PublicKey loadPublicKey(Path path) {
+        byte[] der = decodePem(readPem(path));
+        try {
+            KeyFactory keyFactory = KeyFactory.getInstance(KEY_ALGORITHM);
+            return keyFactory.generatePublic(new X509EncodedKeySpec(der));
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            throw new IllegalStateException("Failed to load JWT public key from " + path, e);
+        }
+    }
+
+    private static String readPem(Path path) {
+        try {
+            return Files.readString(path, StandardCharsets.US_ASCII);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read JWT key file " + path, e);
+        }
+    }
+
+    private static byte[] decodePem(String pem) {
+        String base64 = pem
+                .replaceAll("-----BEGIN [A-Z ]+-----", "")
+                .replaceAll("-----END [A-Z ]+-----", "")
+                .replaceAll("\\s", "");
+        return Base64.getDecoder().decode(base64);
     }
 }

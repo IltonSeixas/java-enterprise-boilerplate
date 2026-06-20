@@ -89,6 +89,8 @@ The `domain/` and `application/` packages never import from Spring, JPA, or any 
 ```bash
 git clone https://github.com/your-org/java-enterprise-boilerplate
 cd java-enterprise-boilerplate
+openssl genpkey -algorithm ed25519 -out jwt_private.pem
+openssl pkey -in jwt_private.pem -pubout -out jwt_public.pem
 ./mvnw spring-boot:run
 ```
 
@@ -98,7 +100,7 @@ The server starts on `http://localhost:3000`. No database required.
 
 ```bash
 cp .env.example .env
-# Edit .env: set SPRING_DATASOURCE_*, REDIS_*, JWT_SECRET, etc.
+# Edit .env: set SPRING_DATASOURCE_*, REDIS_*, JWT_PRIVATE_KEY_PATH, JWT_PUBLIC_KEY_PATH, etc.
 
 SPRING_PROFILES_ACTIVE=postgres ./mvnw spring-boot:run
 ```
@@ -119,7 +121,7 @@ The `PasswordHasher` output port in `application/port/out/` abstracts the algori
 
 ### Authentication Flow
 
-- **Access token**: JWT signed with HS256 (HMAC-SHA256), TTL 15 min
+- **Access token**: JWT EdDSA (Ed25519), TTL 15 min, validated on every authenticated request
 - **Refresh token**: opaque UUID, stored in Redis with TTL 7 days, rotated on every use, delivered via HttpOnly cookie
 - **Revocation**: evicting the Redis entry immediately invalidates the session
 - **RBAC**: enforced via Spring Security method security (`@PreAuthorize`) at the use case boundary
@@ -233,7 +235,8 @@ All configuration via `application.yml` and environment variable overrides (Spri
 | `SPRING_PROFILES_ACTIVE` | `inmemory` | Persistence profile: `inmemory` or `postgres` |
 | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/boilerplate` | JDBC PostgreSQL URL — only read on the `postgres` profile |
 | `SPRING_DATA_REDIS_URL` | `redis://localhost:6379` | Redis connection URL |
-| `JWT_SECRET` | — | HMAC-SHA256 (HS256) signing secret, minimum 32 characters |
+| `JWT_PRIVATE_KEY_PATH` | `jwt_private.pem` | Path to the Ed25519 PEM private key used to sign access tokens |
+| `JWT_PUBLIC_KEY_PATH` | `jwt_public.pem` | Path to the Ed25519 PEM public key used to verify access tokens |
 | `JWT_ACCESS_EXPIRY_MINUTES` | `15` | Access token TTL (minutes) |
 | `JWT_REFRESH_EXPIRY_DAYS` | `7` | Refresh token TTL (days) |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000,http://localhost:5173` | Comma-separated CORS allow-list |
