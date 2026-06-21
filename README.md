@@ -1,5 +1,3 @@
-> **Work in progress** — this project is under active development and is not yet production-ready.
-
 # java-enterprise-boilerplate
 
 [![CI](https://github.com/IltonSeixas/java-enterprise-boilerplate/actions/workflows/ci.yml/badge.svg)](https://github.com/IltonSeixas/java-enterprise-boilerplate/actions/workflows/ci.yml)
