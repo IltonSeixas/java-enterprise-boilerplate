@@ -44,6 +44,11 @@ management:
   endpoint:
     health:
       show-details: when_authorized
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,redis
   tracing:
     sampling:
       probability: ${OTEL_SAMPLING_PROBABILITY:1.0}
@@ -133,3 +138,10 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+management:
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: readinessState,redis,db
