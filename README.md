@@ -246,7 +246,14 @@ All configuration via `application.yml` and environment variable overrides (Spri
 | `GRPC_PORT` | `50051` | gRPC port |
 | `SPRING_PROFILES_ACTIVE` | `inmemory` | Persistence profile: `inmemory` or `postgres` |
 | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/boilerplate` | JDBC PostgreSQL URL — only read on the `postgres` profile |
+| `DB_POOL_SIZE` | `10` | HikariCP maximum pool size — only read on the `postgres` profile |
+| `DB_POOL_MIN_IDLE` | `2` | HikariCP minimum idle connections — only read on the `postgres` profile |
+| `DB_POOL_CONNECT_TIMEOUT_MS` | `30000` | HikariCP connection acquisition timeout (ms) — only read on the `postgres` profile |
+| `DB_POOL_IDLE_TIMEOUT_MS` | `600000` | HikariCP idle connection timeout (ms) — only read on the `postgres` profile |
+| `DB_POOL_MAX_LIFETIME_MS` | `1800000` | HikariCP maximum connection lifetime (ms) — only read on the `postgres` profile |
 | `SPRING_DATA_REDIS_URL` | `redis://localhost:6379` | Redis connection URL |
+| `REDIS_CONNECT_TIMEOUT_MS` | `2000` | Redis (Lettuce) connection timeout (ms) |
+| `REDIS_COMMAND_TIMEOUT_MS` | `2000` | Redis (Lettuce) command timeout (ms) |
 | `JWT_PRIVATE_KEY_PATH` | `jwt_private.pem` | Path to the Ed25519 PEM private key used to sign access tokens |
 | `JWT_PUBLIC_KEY_PATH` | `jwt_public.pem` | Path to the Ed25519 PEM public key used to verify access tokens |
 | `JWT_ACCESS_EXPIRY_MINUTES` | `15` | Access token TTL (minutes) |
