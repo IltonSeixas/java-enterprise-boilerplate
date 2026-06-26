@@ -34,6 +34,29 @@ jobs:
         with:
           files: target/site/jacoco/jacoco.xml
 
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      # Only the migrations test runs here: the other existing integration
+      # tests boot the full Spring context, which currently fails due to a
+      # pre-existing resilience4j-spring-boot3/Spring Boot 4 incompatibility
+      # unrelated to this job.
+      - name: Integration tests
+        run: ./mvnw test -Dtest=FlywayConcurrentMigrationIntegrationTest -DexcludedGroups= -B
+
   audit:
     name: Security Audit
     runs-on: ubuntu-latest
