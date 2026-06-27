@@ -75,7 +75,10 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
         if (trustForwardedHeaders) {
             String forwarded = request.getHeader("X-Forwarded-For");
             if (forwarded != null && !forwarded.isBlank()) {
-                return forwarded.split(",")[0].trim();
+                // The leftmost entry is client-supplied and trivially spoofable; the
+                // rightmost entry is the one appended by our own trusted reverse proxy.
+                String[] hops = forwarded.split(",");
+                return hops[hops.length - 1].trim();
             }
         }
         return request.getRemoteAddr();

@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.infrastructure.security;
 
+import com.enterprise.boilerplate.domain.exception.DomainException;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
 import jakarta.servlet.FilterChain;
@@ -59,7 +60,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 var authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            } catch (Exception e) {
+            } catch (DomainException e) {
                 log.warn("Failed to set authentication from token: {}", e.getMessage());
                 SecurityContextHolder.clearContext();
             }
