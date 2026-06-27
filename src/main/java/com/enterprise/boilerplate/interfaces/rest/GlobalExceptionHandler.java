@@ -9,6 +9,7 @@ import com.enterprise.boilerplate.domain.exception.InvalidTokenException;
 import com.enterprise.boilerplate.domain.exception.InvalidUserIdException;
 import com.enterprise.boilerplate.domain.exception.UserAlreadyExistsException;
 import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.net.URI;
 import java.util.List;
@@ -94,6 +96,37 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
         List<Map<String, String>> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> Map.of("field", fe.getField(), "message", defaultMessage(fe)))
+                .toList();
+
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problem.setType(URI.create("https://errors.enterprise.com/validation-failed"));
+        problem.setDetail("Request validation failed");
+        problem.setProperty("errors", errors);
+        return problem;
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ProblemDetail handleMethodValidation(HandlerMethodValidationException ex) {
+        List<Map<String, String>> errors = ex.getParameterValidationResults().stream()
+                .flatMap(result -> result.getResolvableErrors().stream()
+                        .map(error -> Map.of(
+                                "field", result.getMethodParameter().getParameterName(),
+                                "message", error.getDefaultMessage() != null ? error.getDefaultMessage() : "invalid value")))
+                .toList();
+
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problem.setType(URI.create("https://errors.enterprise.com/validation-failed"));
+        problem.setDetail("Request validation failed");
+        problem.setProperty("errors", errors);
+        return problem;
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ProblemDetail handleConstraintViolation(ConstraintViolationException ex) {
+        List<Map<String, String>> errors = ex.getConstraintViolations().stream()
+                .map(violation -> Map.of(
+                        "field", violation.getPropertyPath().toString(),
+                        "message", violation.getMessage()))
                 .toList();
 
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);

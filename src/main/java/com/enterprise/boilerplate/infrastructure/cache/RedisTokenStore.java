@@ -44,8 +44,6 @@ public class RedisTokenStore {
                     String key = new String(cursor.next());
                     perKey.accept(key);
                 }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
             return null;
         });
