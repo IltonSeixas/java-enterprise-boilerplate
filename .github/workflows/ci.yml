@@ -89,7 +89,8 @@ jobs:
           ./mvnw org.owasp:dependency-check-maven:12.2.2:check -B \
             -DnvdApiKey="${NVD_API_KEY}" \
             -DnvdApiDelay=4000 \
-            -DfailBuildOnCVSS=7
+            -DfailBuildOnCVSS=7 \
+            -DsuppressionFiles=owasp-suppressions.xml
 
       - name: Upload report
         if: always()
