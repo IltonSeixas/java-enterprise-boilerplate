@@ -26,6 +26,8 @@
         <grpc-spring-boot.version>3.1.0.RELEASE</grpc-spring-boot.version>
         <protobuf.version>3.25.5</protobuf.version>
         <opentelemetry.version>1.63.0</opentelemetry.version>
+        <opentelemetry-semconv.version>1.42.0</opentelemetry-semconv.version>
+        <jackson-databind.version>2.22.0</jackson-databind.version>
         <bouncycastle.version>1.84</bouncycastle.version>
         <testcontainers.version>2.0.5</testcontainers.version>
         <archunit.version>1.4.2</archunit.version>
@@ -41,6 +43,16 @@
                 <version>${grpc.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry.semconv</groupId>
+                <artifactId>opentelemetry-semconv</artifactId>
+                <version>${opentelemetry-semconv.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson-databind.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
