@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
+    <suppress>
+        <notes>
+            CVE-2026-39883 applies to opentelemetry-go (target_sw=go), not to the
+            Java opentelemetry-semconv artifact. The auto-generated CPE for this
+            jar lacks a target_sw qualifier and incorrectly matches the Go
+            product's CPE range (>= 1.15.0, < 1.43.0).
+        </notes>
+        <packageUrl regex="true">^pkg:maven/io\.opentelemetry\.semconv/opentelemetry\-semconv@.*$</packageUrl>
+        <cve>CVE-2026-39883</cve>
+    </suppress>
+</suppressions>
