@@ -5,10 +5,23 @@
             CVE-2026-39883 and CVE-2026-39882 apply to opentelemetry-go
             (target_sw=go), not to the Java opentelemetry-semconv artifact. The
             auto-generated CPE for this jar lacks a target_sw qualifier and
-            incorrectly matches the Go product's CPE range (>= 1.15.0, < 1.43.0).
+            incorrectly matches the Go product's CPE range (from 1.15.0 up to,
+            but excluding, 1.43.0).
         </notes>
         <packageUrl regex="true">^pkg:maven/io\.opentelemetry\.semconv/opentelemetry\-semconv@.*$</packageUrl>
         <cve>CVE-2026-39883</cve>
         <cve>CVE-2026-39882</cve>
+    </suppress>
+    <suppress>
+        <notes>
+            CVE-2026-53914 is an unsafe deserialization issue in the Kotlin
+            compiler/Gradle build cache metadata handling, not in the
+            kotlin-stdlib runtime jar. This project only depends on
+            kotlin-stdlib transitively via okhttp (OpenTelemetry OTLP
+            exporter) as a runtime library; it never invokes the Kotlin
+            build cache feature described in the advisory.
+        </notes>
+        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib@.*$</packageUrl>
+        <cve>CVE-2026-53914</cve>
     </suppress>
 </suppressions>
