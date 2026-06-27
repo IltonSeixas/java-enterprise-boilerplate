@@ -50,7 +50,7 @@ public class Argon2PasswordHasher implements PasswordHasherPort {
             byte[] actualHash = computeHash(rawPassword.getBytes(), salt);
 
             return MessageDigest.isEqual(expectedHash, actualHash);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             return false;
         }
     }

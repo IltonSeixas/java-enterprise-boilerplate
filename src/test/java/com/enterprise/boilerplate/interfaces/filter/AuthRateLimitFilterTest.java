@@ -105,6 +105,33 @@ class AuthRateLimitFilterTest {
     }
 
     @Test
+    void resolveClientIp_usesLastHopOfForwardedHeader_whenTrusted() throws Exception {
+        var filter = new AuthRateLimitFilter(new RateLimitProperties(true));
+        FilterChain chain = mock(FilterChain.class);
+
+        // A malicious client can prepend arbitrary values to X-Forwarded-For;
+        // only the entry appended by our own trusted reverse proxy (the last
+        // one) is safe to use as the rate-limit key.
+        for (int i = 0; i < 10; i++) {
+            var request = new MockHttpServletRequest("POST", "/api/v1/auth/login");
+            request.setServletPath("/api/v1/auth/login");
+            request.setRemoteAddr("198.51.100.1");
+            request.addHeader("X-Forwarded-For", "203.0.113." + i + ", 10.0.0.5");
+            filter.doFilter(request, new MockHttpServletResponse(), chain);
+        }
+
+        var blocked = new MockHttpServletRequest("POST", "/api/v1/auth/login");
+        blocked.setServletPath("/api/v1/auth/login");
+        blocked.setRemoteAddr("198.51.100.2");
+        blocked.addHeader("X-Forwarded-For", "203.0.113.99, 10.0.0.5");
+        var response = new MockHttpServletResponse();
+
+        filter.doFilter(blocked, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(429);
+    }
+
+    @Test
     void resolveClientIp_usesForwardedHeader_whenTrusted() throws Exception {
         var filter = new AuthRateLimitFilter(new RateLimitProperties(true));
         FilterChain chain = mock(FilterChain.class);
