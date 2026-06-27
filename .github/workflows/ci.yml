@@ -90,7 +90,7 @@ jobs:
             -DnvdApiKey="${NVD_API_KEY}" \
             -DnvdApiDelay=4000 \
             -DfailBuildOnCVSS=7 \
-            -DsuppressionFiles=owasp-suppressions.xml
+            -DsuppressionFile="$(pwd)/owasp-suppressions.xml"
 
       - name: Upload report
         if: always()
