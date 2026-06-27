@@ -12,8 +12,11 @@ import com.enterprise.boilerplate.application.usecase.GetUserUseCase;
 import com.enterprise.boilerplate.application.usecase.ListUsersUseCase;
 import com.enterprise.boilerplate.application.usecase.UpdateProfileUseCase;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/users")
+@Validated
 public class UserController {
 
     private final GetUserUseCase getUserUseCase;
@@ -60,8 +64,8 @@ public class UserController {
     public ResponseEntity<PageResponse<UserResponse>> list(@RequestParam(required = false) String role,
                                                             @RequestParam(required = false) Boolean active,
                                                             @RequestParam(required = false) String name,
-                                                            @RequestParam(defaultValue = "0") int page,
-                                                            @RequestParam(defaultValue = "20") int size,
+                                                            @RequestParam(defaultValue = "0") @Min(0) int page,
+                                                            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
                                                             Authentication authentication) {
         String callerId = (String) authentication.getPrincipal();
         var request = new ListUsersRequest(role, active, name, page, size);
