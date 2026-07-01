@@ -79,7 +79,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: dependency-check-data-${{ github.run_id }}
+          key: dependency-check-data-${{ hashFiles('pom.xml') }}
           restore-keys: dependency-check-data-
 
       - name: Dependency vulnerability check

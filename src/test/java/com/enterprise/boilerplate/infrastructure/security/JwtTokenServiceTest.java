@@ -67,12 +67,13 @@ class JwtTokenServiceTest {
     }
 
     @Test
-    void extractRole_returnsRoleClaimFromIssuedToken() throws Exception {
+    void parseAccessToken_returnsRoleClaimFromIssuedToken() throws Exception {
         JwtTokenService service = newService(generateKeyPair());
 
         String token = service.issueAccessToken(user);
 
-        assertThat(service.extractRole(token)).isEqualTo("ADMIN");
+        assertThat(service.parseAccessToken(token))
+                .hasValueSatisfying(claims -> assertThat(claims.role()).isEqualTo("ADMIN"));
     }
 
     private JwtTokenService newService(KeyPair keyPair) throws IOException {
@@ -86,7 +87,9 @@ class JwtTokenServiceTest {
                 publicKeyPath.toString(),
                 ACCESS_TOKEN_EXPIRY_MINUTES,
                 REFRESH_TOKEN_EXPIRY_DAYS);
-        return new JwtTokenService(jwtProperties, tokenStore);
+        JwtTokenService service = new JwtTokenService(jwtProperties, tokenStore);
+        service.loadKeys();
+        return service;
     }
 
     private static KeyPair generateKeyPair() throws NoSuchAlgorithmException {

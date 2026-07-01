@@ -5,6 +5,8 @@ import org.springframework.data.jpa.domain.Specification;
 
 final class UserSpecifications {
 
+    private static final char LIKE_ESCAPE = '\\';
+
     private UserSpecifications() {}
 
     static Specification<UserJpaEntity> matching(UserFilter filter) {
@@ -18,11 +20,16 @@ final class UserSpecifications {
                 predicate = builder.and(predicate, builder.equal(root.get("active"), filter.active()));
             }
             if (filter.nameContains() != null && !filter.nameContains().isBlank()) {
+                String escaped = escapeLike(filter.nameContains().toLowerCase());
                 predicate = builder.and(predicate,
-                        builder.like(builder.lower(root.get("name")), "%" + filter.nameContains().toLowerCase() + "%"));
+                        builder.like(builder.lower(root.get("name")), "%" + escaped + "%", LIKE_ESCAPE));
             }
 
             return predicate;
         };
+    }
+
+    private static String escapeLike(String value) {
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 }

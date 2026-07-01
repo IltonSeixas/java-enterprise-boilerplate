@@ -14,18 +14,23 @@ import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/**
- * Translates domain and validation errors into {@link StatusRuntimeException}s with
- * the gRPC status code that best matches their REST counterpart in {@code GlobalExceptionHandler}.
- */
 public final class GrpcExceptionMapper {
+
+    private static final Logger log = LoggerFactory.getLogger(GrpcExceptionMapper.class);
 
     private GrpcExceptionMapper() {
     }
 
     public static StatusRuntimeException toStatusException(Throwable error) {
-        return statusFor(error).withDescription(error.getMessage()).withCause(error).asRuntimeException();
+        Status status = statusFor(error);
+        if (status == Status.INTERNAL) {
+            log.error("Unhandled gRPC error", error);
+            return status.withDescription("An internal error occurred").asRuntimeException();
+        }
+        return status.withDescription(error.getMessage()).withCause(error).asRuntimeException();
     }
 
     private static Status statusFor(Throwable error) {

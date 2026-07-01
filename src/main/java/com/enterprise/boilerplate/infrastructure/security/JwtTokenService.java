@@ -8,6 +8,7 @@ import com.enterprise.boilerplate.config.properties.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
@@ -30,8 +31,8 @@ public class JwtTokenService implements TokenServicePort {
     private final long refreshTokenTtlSeconds;
     private final RedisTokenStore tokenStore;
 
-    private volatile PrivateKey signingKey;
-    private volatile PublicKey verificationKey;
+    private PrivateKey signingKey;
+    private PublicKey verificationKey;
 
     public JwtTokenService(JwtProperties jwtProperties, RedisTokenStore tokenStore) {
         this.privateKeyPath = Path.of(jwtProperties.privateKeyPath());
@@ -39,6 +40,12 @@ public class JwtTokenService implements TokenServicePort {
         this.accessTokenTtlSeconds = jwtProperties.accessTokenExpiryMinutes() * 60;
         this.refreshTokenTtlSeconds = jwtProperties.refreshTokenExpiryDays() * 86400;
         this.tokenStore = tokenStore;
+    }
+
+    @PostConstruct
+    void loadKeys() {
+        this.signingKey = Ed25519PemKeyLoader.loadPrivateKey(privateKeyPath);
+        this.verificationKey = Ed25519PemKeyLoader.loadPublicKey(publicKeyPath);
     }
 
     @Override
@@ -66,13 +73,17 @@ public class JwtTokenService implements TokenServicePort {
 
     @Override
     public Optional<String> validateAccessToken(String token) {
+        return parseAccessToken(token).map(TokenClaims::subject);
+    }
+
+    public Optional<TokenClaims> parseAccessToken(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(verificationKey())
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return Optional.of(claims.getSubject());
+            return Optional.of(new TokenClaims(claims.getSubject(), claims.get(ROLE_CLAIM, String.class)));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }
@@ -93,50 +104,19 @@ public class JwtTokenService implements TokenServicePort {
 
     @Override
     public void revokeAllRefreshTokens(String userId) {
-        tokenStore.deleteByPattern(USER_REFRESH_PREFIX + userId + ":*", key -> {
-            tokenStore.get(REFRESH_KEY_PREFIX + key).ifPresent(ignored ->
-                tokenStore.delete(REFRESH_KEY_PREFIX + key)
-            );
-            tokenStore.delete(key);
+        String userKeyPrefix = USER_REFRESH_PREFIX + userId + ":";
+        tokenStore.deleteByPattern(userKeyPrefix + "*", fullKey -> {
+            String bareToken = fullKey.substring(userKeyPrefix.length());
+            tokenStore.delete(REFRESH_KEY_PREFIX + bareToken);
+            tokenStore.delete(fullKey);
         });
     }
 
-    public String extractRole(String token) {
-        try {
-            return Jwts.parser()
-                    .verifyWith(verificationKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload()
-                    .get(ROLE_CLAIM, String.class);
-        } catch (JwtException | IllegalArgumentException e) {
-            throw new InvalidTokenException();
-        }
-    }
-
     private PrivateKey signingKey() {
-        PrivateKey key = signingKey;
-        if (key == null) {
-            synchronized (this) {
-                key = signingKey;
-                if (key == null) {
-                    key = signingKey = Ed25519PemKeyLoader.loadPrivateKey(privateKeyPath);
-                }
-            }
-        }
-        return key;
+        return signingKey;
     }
 
     private PublicKey verificationKey() {
-        PublicKey key = verificationKey;
-        if (key == null) {
-            synchronized (this) {
-                key = verificationKey;
-                if (key == null) {
-                    key = verificationKey = Ed25519PemKeyLoader.loadPublicKey(publicKeyPath);
-                }
-            }
-        }
-        return key;
+        return verificationKey;
     }
 }
