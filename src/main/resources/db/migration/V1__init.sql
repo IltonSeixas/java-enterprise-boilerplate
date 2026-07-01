@@ -9,7 +9,5 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-
 -- Enforces at most one Owner at the database level, preventing TOCTOU races.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_users_owner_role ON users ((role)) WHERE role = 'OWNER';

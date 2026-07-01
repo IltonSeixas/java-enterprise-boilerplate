@@ -40,7 +40,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,prometheus
   endpoint:
     health:
       show-details: when_authorized
@@ -51,7 +51,7 @@ management:
           include: readinessState,redis
   tracing:
     sampling:
-      probability: ${OTEL_SAMPLING_PROBABILITY:1.0}
+      probability: ${OTEL_SAMPLING_PROBABILITY:0.1}
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
@@ -128,7 +128,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/boilerplate}
     username: ${SPRING_DATASOURCE_USERNAME:boilerplate}
-    password: ${SPRING_DATASOURCE_PASSWORD:boilerplate}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:10}
       minimum-idle: ${DB_POOL_MIN_IDLE:2}

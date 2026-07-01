@@ -6,6 +6,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -41,7 +42,7 @@ public class RedisTokenStore {
             ScanOptions opts = ScanOptions.scanOptions().match(pattern).count(100).build();
             try (var cursor = connection.keyCommands().scan(opts)) {
                 while (cursor.hasNext()) {
-                    String key = new String(cursor.next());
+                    String key = new String(cursor.next(), StandardCharsets.UTF_8);
                     perKey.accept(key);
                 }
             }

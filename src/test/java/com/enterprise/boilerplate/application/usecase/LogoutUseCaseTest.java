@@ -4,6 +4,7 @@ import com.enterprise.boilerplate.application.port.out.AuditPort;
 import com.enterprise.boilerplate.application.port.out.TokenServicePort;
 import com.enterprise.boilerplate.domain.audit.AuditEvent;
 import com.enterprise.boilerplate.domain.audit.AuditEventType;
+import com.enterprise.boilerplate.domain.exception.InvalidTokenException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -13,7 +14,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,5 +41,16 @@ class LogoutUseCaseTest {
         verify(audit).record(captor.capture());
         assertThat(captor.getValue().type()).isEqualTo(AuditEventType.LOGOUT);
         assertThat(captor.getValue().actorUserId()).isEqualTo("user-id");
+    }
+
+    @Test
+    void execute_throwsInvalidTokenException_whenRefreshTokenUnknown() {
+        var useCase = new LogoutUseCase(tokenService, audit);
+        when(tokenService.resolveUserIdFromRefreshToken("bad-token")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> useCase.execute("bad-token"))
+                .isInstanceOf(InvalidTokenException.class);
+
+        verifyNoInteractions(audit);
     }
 }
