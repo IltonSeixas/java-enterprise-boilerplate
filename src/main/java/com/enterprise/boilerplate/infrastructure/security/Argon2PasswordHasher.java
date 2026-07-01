@@ -6,6 +6,7 @@ import org.bouncycastle.crypto.params.Argon2Parameters;
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -26,7 +27,7 @@ public class Argon2PasswordHasher implements PasswordHasherPort {
         byte[] salt = new byte[SALT_LENGTH];
         secureRandom.nextBytes(salt);
 
-        byte[] hash = computeHash(rawPassword.getBytes(), salt);
+        byte[] hash = computeHash(rawPassword.getBytes(StandardCharsets.UTF_8), salt);
 
         String encoded = "$argon2id$v=19$m=" + MEMORY + ",t=" + ITERATIONS + ",p=" + PARALLELISM
                 + "$" + Base64.getEncoder().withoutPadding().encodeToString(salt)
@@ -47,7 +48,7 @@ public class Argon2PasswordHasher implements PasswordHasherPort {
             byte[] salt = Base64.getDecoder().decode(parts[4]);
             byte[] expectedHash = Base64.getDecoder().decode(parts[5]);
 
-            byte[] actualHash = computeHash(rawPassword.getBytes(), salt);
+            byte[] actualHash = computeHash(rawPassword.getBytes(StandardCharsets.UTF_8), salt);
 
             return MessageDigest.isEqual(expectedHash, actualHash);
         } catch (IllegalArgumentException e) {

@@ -27,9 +27,14 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             long duration = System.currentTimeMillis() - start;
             log.info("{} {} {} {}ms",
                     request.getMethod(),
-                    request.getRequestURI(),
+                    sanitize(request.getServletPath()),
                     response.getStatus(),
                     duration);
         }
+    }
+
+    private static String sanitize(String value) {
+        if (value == null) return "";
+        return value.replaceAll("[\\r\\n\\t]", "_");
     }
 }

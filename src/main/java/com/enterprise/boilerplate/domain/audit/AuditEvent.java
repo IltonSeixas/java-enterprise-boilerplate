@@ -25,6 +25,6 @@ public record AuditEvent(
     }
 
     public static AuditEvent of(AuditEventType type, String actorUserId, String detail) {
-        return of(type, actorUserId, actorUserId, detail);
+        return of(type, actorUserId, null, detail);
     }
 }

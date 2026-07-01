@@ -7,9 +7,7 @@ import com.enterprise.boilerplate.application.port.out.PasswordHasherPort;
 import com.enterprise.boilerplate.application.port.out.TokenServicePort;
 import com.enterprise.boilerplate.domain.audit.AuditEvent;
 import com.enterprise.boilerplate.domain.audit.AuditEventType;
-import com.enterprise.boilerplate.domain.exception.InactiveUserException;
 import com.enterprise.boilerplate.domain.exception.InvalidPasswordException;
-import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 
@@ -35,15 +33,18 @@ public class LoginUserUseCase {
 
     public AuthResponse execute(LoginRequest request) {
         var email = Email.of(request.email());
-        var user = userRepository.findByEmail(email)
-                .orElseThrow(() -> {
-                    audit.record(AuditEvent.of(AuditEventType.LOGIN_FAILED, email.value(), "user not found"));
-                    return new UserNotFoundException(email.value());
-                });
+        var userOpt = userRepository.findByEmail(email);
+
+        if (userOpt.isEmpty()) {
+            audit.record(AuditEvent.of(AuditEventType.LOGIN_FAILED, "ANONYMOUS", "user not found: " + email.value()));
+            throw new InvalidPasswordException();
+        }
+
+        var user = userOpt.get();
 
         if (!user.isActive()) {
             audit.record(AuditEvent.of(AuditEventType.LOGIN_FAILED, user.getId().toString(), "inactive user"));
-            throw new InactiveUserException();
+            throw new InvalidPasswordException();
         }
 
         if (!passwordHasher.verify(request.password(), user.getPasswordHash())) {
