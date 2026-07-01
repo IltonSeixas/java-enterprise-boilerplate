@@ -63,12 +63,12 @@ public class UserController {
     @GetMapping
     public ResponseEntity<PageResponse<UserResponse>> list(@RequestParam(required = false) String role,
                                                             @RequestParam(required = false) Boolean active,
-                                                            @RequestParam(required = false) String name,
+                                                            @RequestParam(required = false) String nameContains,
                                                             @RequestParam(defaultValue = "0") @Min(0) int page,
                                                             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
                                                             Authentication authentication) {
         String callerId = (String) authentication.getPrincipal();
-        var request = new ListUsersRequest(role, active, name, page, size);
+        var request = new ListUsersRequest(role, active, nameContains, page, size);
         return ResponseEntity.ok(listUsersUseCase.execute(callerId, request));
     }
 

@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
     occurred_at     TIMESTAMPTZ NOT NULL,
     event_type      TEXT NOT NULL,
     actor_user_id   TEXT NOT NULL,
-    target_user_id  TEXT NOT NULL,
+    target_user_id  TEXT,
     detail          TEXT
 );
 

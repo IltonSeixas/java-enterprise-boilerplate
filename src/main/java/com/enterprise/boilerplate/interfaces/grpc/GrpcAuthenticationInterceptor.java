@@ -17,8 +17,11 @@ import java.util.Set;
 
 /**
  * Validates the {@code authorization: Bearer <token>} request metadata for protected
- * services and exposes the resulting caller via {@link #CALLER_CONTEXT_KEY}, mirroring
+ * methods and exposes the resulting caller via {@link #CALLER_CONTEXT_KEY}, mirroring
  * the active-account check performed by the REST {@code JwtAuthenticationFilter}.
+ *
+ * <p>Public methods (no token required) are listed in {@link #PUBLIC_METHODS}. All other
+ * methods must supply a valid Bearer access token.
  */
 @GrpcGlobalServerInterceptor
 @Order(0)
@@ -30,7 +33,12 @@ public class GrpcAuthenticationInterceptor implements ServerInterceptor {
             Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER);
     private static final String BEARER_PREFIX = "Bearer ";
 
-    private static final Set<String> SERVICES_REQUIRING_AUTH = Set.of("boilerplate.v1.UserService");
+    // Full method names in gRPC format: "<package>.<Service>/<Method>"
+    private static final Set<String> PUBLIC_METHODS = Set.of(
+            "boilerplate.v1.AuthService/Register",
+            "boilerplate.v1.AuthService/Login",
+            "boilerplate.v1.AuthService/RefreshToken"
+    );
 
     private final TokenServicePort tokenService;
     private final UserRepository userRepository;
@@ -44,8 +52,8 @@ public class GrpcAuthenticationInterceptor implements ServerInterceptor {
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call,
                                                                   Metadata headers,
                                                                   ServerCallHandler<ReqT, RespT> next) {
-        String serviceName = call.getMethodDescriptor().getServiceName();
-        if (serviceName == null || !SERVICES_REQUIRING_AUTH.contains(serviceName)) {
+        String fullMethodName = call.getMethodDescriptor().getFullMethodName();
+        if (PUBLIC_METHODS.contains(fullMethodName)) {
             return next.startCall(call, headers);
         }
 
