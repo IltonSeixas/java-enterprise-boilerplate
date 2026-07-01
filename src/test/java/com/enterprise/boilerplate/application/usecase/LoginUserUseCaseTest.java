@@ -8,9 +8,7 @@ import com.enterprise.boilerplate.application.port.out.TokenServicePort;
 import com.enterprise.boilerplate.domain.audit.AuditEvent;
 import com.enterprise.boilerplate.domain.audit.AuditEventType;
 import com.enterprise.boilerplate.domain.entity.User;
-import com.enterprise.boilerplate.domain.exception.InactiveUserException;
 import com.enterprise.boilerplate.domain.exception.InvalidPasswordException;
-import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
@@ -56,22 +54,22 @@ class LoginUserUseCaseTest {
     }
 
     @Test
-    void execute_withUnknownEmail_throwsUserNotFoundExceptionAndRecordsAuditEvent() {
+    void execute_withUnknownEmail_throwsInvalidPasswordExceptionAndRecordsAuditEvent() {
         var useCase = newUseCase();
         var request = new LoginRequest(EMAIL.value(), "strongpassword1");
         when(userRepository.findByEmail(any(Email.class))).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.execute(request))
-                .isInstanceOf(UserNotFoundException.class);
+                .isInstanceOf(InvalidPasswordException.class);
 
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(audit).record(captor.capture());
         assertThat(captor.getValue().type()).isEqualTo(AuditEventType.LOGIN_FAILED);
-        assertThat(captor.getValue().actorUserId()).isEqualTo(EMAIL.value());
+        assertThat(captor.getValue().actorUserId()).isEqualTo("ANONYMOUS");
     }
 
     @Test
-    void execute_withInactiveAccount_throwsInactiveUserExceptionAndRecordsAuditEvent() {
+    void execute_withInactiveAccount_throwsInvalidPasswordExceptionAndRecordsAuditEvent() {
         var useCase = newUseCase();
         var request = new LoginRequest(EMAIL.value(), "strongpassword1");
         User user = activeUser();
@@ -79,7 +77,7 @@ class LoginUserUseCaseTest {
         when(userRepository.findByEmail(any(Email.class))).thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> useCase.execute(request))
-                .isInstanceOf(InactiveUserException.class);
+                .isInstanceOf(InvalidPasswordException.class);
 
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(audit).record(captor.capture());

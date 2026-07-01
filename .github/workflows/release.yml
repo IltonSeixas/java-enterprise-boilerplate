@@ -22,6 +22,9 @@ jobs:
           distribution: temurin
           cache: maven
 
+      - name: Run tests
+        run: ./mvnw test -B
+
       - name: Build JAR
         run: ./mvnw package -DskipTests -B
 

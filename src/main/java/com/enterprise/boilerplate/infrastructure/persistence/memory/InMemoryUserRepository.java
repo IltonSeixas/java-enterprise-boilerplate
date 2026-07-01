@@ -23,7 +23,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class InMemoryUserRepository implements UserRepository {
 
     private final Map<String, User> store = new ConcurrentHashMap<>();
-    private final ReentrantLock firstOwnerLock = new ReentrantLock();
+    private final ReentrantLock writeLock = new ReentrantLock();
 
     @Override
     public Optional<User> findById(UserId id) {
@@ -39,7 +39,18 @@ public class InMemoryUserRepository implements UserRepository {
 
     @Override
     public void save(User user) {
-        store.put(user.getId().toString(), user);
+        writeLock.lock();
+        try {
+            String currentId = user.getId().toString();
+            boolean emailTaken = store.values().stream()
+                    .anyMatch(u -> u.getEmail().equals(user.getEmail()) && !u.getId().toString().equals(currentId));
+            if (emailTaken) {
+                throw new UserAlreadyExistsException(user.getEmail().value());
+            }
+            store.put(currentId, user);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     @Override
@@ -54,14 +65,14 @@ public class InMemoryUserRepository implements UserRepository {
 
     @Override
     public void saveFirstOwner(User user) {
-        firstOwnerLock.lock();
+        writeLock.lock();
         try {
             if (hasOwner()) {
                 throw UserAlreadyExistsException.ownerAlreadyExists();
             }
             store.put(user.getId().toString(), user);
         } finally {
-            firstOwnerLock.unlock();
+            writeLock.unlock();
         }
     }
 

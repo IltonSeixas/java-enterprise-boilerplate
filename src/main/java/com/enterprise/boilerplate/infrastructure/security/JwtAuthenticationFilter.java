@@ -46,8 +46,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = header.substring(BEARER_PREFIX.length());
 
-        jwtTokenService.validateAccessToken(token).ifPresent(userId -> {
+        jwtTokenService.parseAccessToken(token).ifPresent(claims -> {
             try {
+                String userId = claims.subject();
                 var user = userRepository.findById(UserId.of(userId)).orElse(null);
 
                 if (user == null || !user.isActive()) {
@@ -55,8 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
 
-                String role = jwtTokenService.extractRole(token);
-                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
+                var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + claims.role()));
                 var authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);

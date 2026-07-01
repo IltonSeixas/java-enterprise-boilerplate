@@ -20,10 +20,10 @@ class AuditEventTest {
     }
 
     @Test
-    void of_withoutExplicitTarget_usesActorAsTarget() {
+    void of_withoutExplicitTarget_setsTargetToNull() {
         AuditEvent event = AuditEvent.of(AuditEventType.LOGIN_SUCCEEDED, "actor-1", "detail");
 
-        assertThat(event.targetUserId()).isEqualTo("actor-1");
+        assertThat(event.targetUserId()).isNull();
     }
 
     @Test

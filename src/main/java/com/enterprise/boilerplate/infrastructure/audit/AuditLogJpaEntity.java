@@ -29,7 +29,7 @@ class AuditLogJpaEntity {
     @Column(name = "actor_user_id", nullable = false, updatable = false)
     private String actorUserId;
 
-    @Column(name = "target_user_id", nullable = false, updatable = false)
+    @Column(name = "target_user_id", nullable = true, updatable = false)
     private String targetUserId;
 
     @Column(updatable = false)
