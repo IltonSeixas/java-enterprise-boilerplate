@@ -24,16 +24,4 @@
         <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib@.*$</packageUrl>
         <cve>CVE-2026-53914</cve>
     </suppress>
-    <suppress until="2026-10-01">
-        <notes>
-            CVE-2026-54515 (GHSA-5jmj-h7xm-6q6v): case-insensitive deserialization bypass of
-            per-property @JsonIgnoreProperties in jackson-databind. No patched version is
-            available as of 2026-07-01. This project does not use polymorphic deserialization
-            with @JsonIgnoreProperties on security-sensitive fields; exploitability requires
-            specific usage patterns not present here. Suppressed pending upstream fix.
-            Review when jackson-databind >= 2.19.x releases a patch.
-        </notes>
-        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
-        <cve>CVE-2026-54515</cve>
-    </suppress>
 </suppressions>
