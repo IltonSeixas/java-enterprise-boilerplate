@@ -2,6 +2,9 @@ package com.enterprise.boilerplate.application.usecase;
 
 import com.enterprise.boilerplate.application.dto.UpdateProfileRequest;
 import com.enterprise.boilerplate.application.dto.UserResponse;
+import com.enterprise.boilerplate.application.port.out.AuditPort;
+import com.enterprise.boilerplate.domain.audit.AuditEvent;
+import com.enterprise.boilerplate.domain.audit.AuditEventType;
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
@@ -10,6 +13,7 @@ import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -29,8 +33,11 @@ class UpdateProfileUseCaseTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private AuditPort audit;
+
     private UpdateProfileUseCase newUseCase() {
-        return new UpdateProfileUseCase(userRepository);
+        return new UpdateProfileUseCase(userRepository, audit);
     }
 
     private User existingUser() {
@@ -48,7 +55,7 @@ class UpdateProfileUseCaseTest {
     }
 
     @Test
-    void execute_withValidName_updatesAndPersistsUser() {
+    void execute_withValidName_updatesAndPersistsUserAndRecordsAuditEvent() {
         var useCase = newUseCase();
         User user = existingUser();
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
@@ -57,5 +64,10 @@ class UpdateProfileUseCaseTest {
 
         assertThat(response.name()).isEqualTo("New Name");
         verify(userRepository).save(user);
+
+        ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
+        verify(audit).record(captor.capture());
+        assertThat(captor.getValue().type()).isEqualTo(AuditEventType.PROFILE_UPDATED);
+        assertThat(captor.getValue().actorUserId()).isEqualTo(user.getId().toString());
     }
 }
