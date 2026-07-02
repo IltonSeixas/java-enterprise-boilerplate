@@ -13,6 +13,12 @@
 -- Rename existing heap table so we can reuse the canonical name.
 ALTER TABLE audit_log RENAME TO audit_log_legacy;
 
+-- Rename the indexes that V3 created on the old audit_log (now audit_log_legacy)
+-- so the canonical names are free for the new partitioned parent.
+ALTER INDEX idx_audit_log_actor_time  RENAME TO idx_audit_log_legacy_actor_time;
+ALTER INDEX idx_audit_log_target_time RENAME TO idx_audit_log_legacy_target_time;
+ALTER INDEX idx_audit_log_type_time   RENAME TO idx_audit_log_legacy_type_time;
+
 -- Create the partitioned parent. The schema is identical to the original.
 CREATE TABLE audit_log (
     id              UUID        NOT NULL,
@@ -24,6 +30,7 @@ CREATE TABLE audit_log (
 ) PARTITION BY RANGE (occurred_at);
 
 -- Indexes on the partitioned parent are inherited by all child partitions.
+-- The legacy partition retains its own renamed copies from V3.
 CREATE INDEX idx_audit_log_actor_time  ON audit_log (actor_user_id, occurred_at DESC);
 CREATE INDEX idx_audit_log_target_time ON audit_log (target_user_id, occurred_at DESC)
     WHERE target_user_id IS NOT NULL;
