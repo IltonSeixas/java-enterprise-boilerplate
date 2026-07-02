@@ -13,6 +13,12 @@
 -- Rename existing heap table so we can reuse the canonical name.
 ALTER TABLE audit_log RENAME TO audit_log_legacy;
 
+-- Rename the indexes that V3 created on the old audit_log (now audit_log_legacy)
+-- so the canonical names are free for the new partitioned parent.
+ALTER INDEX idx_audit_log_actor_time  RENAME TO idx_audit_log_legacy_actor_time;
+ALTER INDEX idx_audit_log_target_time RENAME TO idx_audit_log_legacy_target_time;
+ALTER INDEX idx_audit_log_type_time   RENAME TO idx_audit_log_legacy_type_time;
+
 -- Create the partitioned parent. The schema is identical to the original.
 CREATE TABLE audit_log (
     id              UUID        NOT NULL,
@@ -24,6 +30,7 @@ CREATE TABLE audit_log (
 ) PARTITION BY RANGE (occurred_at);
 
 -- Indexes on the partitioned parent are inherited by all child partitions.
+-- The legacy partition retains its own renamed copies from V3.
 CREATE INDEX idx_audit_log_actor_time  ON audit_log (actor_user_id, occurred_at DESC);
 CREATE INDEX idx_audit_log_target_time ON audit_log (target_user_id, occurred_at DESC)
     WHERE target_user_id IS NOT NULL;
@@ -37,19 +44,30 @@ ALTER TABLE audit_log ATTACH PARTITION audit_log_legacy DEFAULT;
 -- Pre-create partitions for the current and next two months so the application
 -- never hits the default partition for recent writes. Ops should add partitions
 -- monthly via: docs/operations.md > "Adding an audit_log partition".
+--
+-- Each CREATE is wrapped in its own exception handler because IF NOT EXISTS is
+-- not atomic under concurrency: two Flyway instances running in parallel (e.g.
+-- during a rolling deploy) can both pass the existence check before either
+-- commits, causing the second to raise duplicate_table (42P07). We catch and
+-- swallow that specific error so the migration is idempotent under concurrency.
 DO $$
 DECLARE
-    m DATE;
+    m    DATE;
+    name TEXT;
 BEGIN
     FOR i IN 0..2 LOOP
-        m := DATE_TRUNC('month', NOW()) + (i || ' month')::INTERVAL;
-        EXECUTE format(
-            'CREATE TABLE IF NOT EXISTS audit_log_%s PARTITION OF audit_log '
-            'FOR VALUES FROM (%L) TO (%L)',
-            TO_CHAR(m, 'YYYY_MM'),
-            m,
-            m + INTERVAL '1 month'
-        );
+        m    := DATE_TRUNC('month', NOW()) + (i || ' month')::INTERVAL;
+        name := TO_CHAR(m, 'YYYY_MM');
+        BEGIN
+            EXECUTE format(
+                'CREATE TABLE audit_log_%s PARTITION OF audit_log '
+                'FOR VALUES FROM (%L) TO (%L)',
+                name, m, m + INTERVAL '1 month'
+            );
+        EXCEPTION WHEN duplicate_table THEN
+            -- another replica already created this partition; safe to ignore
+            NULL;
+        END;
     END LOOP;
 END;
 $$;
