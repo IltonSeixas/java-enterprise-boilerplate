@@ -1,5 +1,43 @@
-target
+# Build output
+target/
+
+# Environment and secrets
 .env
+.env.*
+!.env.example
 *.pem
+*.key
+*.p12
+*.jks
+*.pfx
+
+# Compiled artifacts (never commit, even accidentally)
+*.class
 *.jar
 !.mvn/wrapper/maven-wrapper.jar
+
+# IDE — IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# IDE — Eclipse / STS
+.classpath
+.project
+.settings/
+bin/
+
+# IDE — VS Code
+.vscode/
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# JaCoCo coverage reports (generated; not versioned)
+*.exec
+
+# Log files
+*.log
+logs/
