@@ -40,6 +40,10 @@ class ListUsersUseCaseTest {
         return new ListUsersUseCase(userRepository);
     }
 
+    private ListUsersRequest request(String role, Boolean active, String nameContains, int page, int size) {
+        return new ListUsersRequest(role, active, nameContains, page, size, null, null);
+    }
+
     private User userWithRole(User.Role role) {
         return User.create(Email.of("user-" + role.name().toLowerCase() + "@example.com"), HASH, "Alice", role);
     }
@@ -50,7 +54,7 @@ class ListUsersUseCaseTest {
         UserId callerId = UserId.generate();
         when(userRepository.findById(callerId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute(callerId.toString(), new ListUsersRequest(null, null, null, 0, 20)))
+        assertThatThrownBy(() -> useCase.execute(callerId.toString(), request(null, null, null, 0, 20)))
                 .isInstanceOf(UserNotFoundException.class);
     }
 
@@ -60,8 +64,7 @@ class ListUsersUseCaseTest {
         User caller = userWithRole(User.Role.USER);
         when(userRepository.findById(caller.getId())).thenReturn(Optional.of(caller));
 
-        assertThatThrownBy(() -> useCase.execute(caller.getId().toString(),
-                new ListUsersRequest(null, null, null, 0, 20)))
+        assertThatThrownBy(() -> useCase.execute(caller.getId().toString(), request(null, null, null, 0, 20)))
                 .isInstanceOf(ForbiddenException.class);
     }
 
@@ -71,8 +74,7 @@ class ListUsersUseCaseTest {
         User admin = userWithRole(User.Role.ADMIN);
         when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
 
-        assertThatThrownBy(() -> useCase.execute(admin.getId().toString(),
-                new ListUsersRequest("superuser", null, null, 0, 20)))
+        assertThatThrownBy(() -> useCase.execute(admin.getId().toString(), request("superuser", null, null, 0, 20)))
                 .isInstanceOf(InvalidRoleException.class);
     }
 
@@ -85,7 +87,7 @@ class ListUsersUseCaseTest {
         when(userRepository.findAll(any(), any())).thenReturn(new UserPage(List.of(target), 1));
 
         PageResponse<?> response = useCase.execute(admin.getId().toString(),
-                new ListUsersRequest("user", true, "ali", 1, 10));
+                new ListUsersRequest("user", true, "ali", 1, 10, "name", "DESC"));
 
         ArgumentCaptor<UserFilter> filterCaptor = ArgumentCaptor.forClass(UserFilter.class);
         ArgumentCaptor<PageCriteria> pageCaptor = ArgumentCaptor.forClass(PageCriteria.class);
@@ -96,6 +98,8 @@ class ListUsersUseCaseTest {
         assertThat(filterCaptor.getValue().nameContains()).isEqualTo("ali");
         assertThat(pageCaptor.getValue().page()).isEqualTo(1);
         assertThat(pageCaptor.getValue().size()).isEqualTo(10);
+        assertThat(pageCaptor.getValue().sortBy()).isEqualTo("name");
+        assertThat(pageCaptor.getValue().direction()).isEqualTo(PageCriteria.SortDirection.DESC);
 
         assertThat(response.content()).hasSize(1);
         assertThat(response.totalElements()).isEqualTo(1);
@@ -108,9 +112,32 @@ class ListUsersUseCaseTest {
         when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
         when(userRepository.findAll(any(), any())).thenReturn(new UserPage(List.of(), 0));
 
-        PageResponse<?> response = useCase.execute(owner.getId().toString(),
-                new ListUsersRequest(null, null, null, 0, 20));
+        PageResponse<?> response = useCase.execute(owner.getId().toString(), request(null, null, null, 0, 20));
 
         assertThat(response.content()).isEmpty();
+    }
+
+    @Test
+    void execute_withInvalidSortBy_throwsIllegalArgumentException() {
+        var useCase = newUseCase();
+        User admin = userWithRole(User.Role.ADMIN);
+        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> useCase.execute(admin.getId().toString(),
+                new ListUsersRequest(null, null, null, 0, 20, "passwordHash", "ASC")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid sortBy");
+    }
+
+    @Test
+    void execute_withInvalidDirection_throwsIllegalArgumentException() {
+        var useCase = newUseCase();
+        User admin = userWithRole(User.Role.ADMIN);
+        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> useCase.execute(admin.getId().toString(),
+                new ListUsersRequest(null, null, null, 0, 20, "name", "UPWARD")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid direction");
     }
 }

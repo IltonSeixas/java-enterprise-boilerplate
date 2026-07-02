@@ -12,7 +12,11 @@ import com.enterprise.boilerplate.domain.repository.UserFilter;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
 
+import java.util.Set;
+
 public class ListUsersUseCase {
+
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("createdAt", "name", "email", "role");
 
     private final UserRepository userRepository;
 
@@ -29,12 +33,30 @@ public class ListUsersUseCase {
         }
 
         var filter = new UserFilter(parseRole(request.role()), request.active(), request.nameContains());
-        var pageCriteria = new PageCriteria(request.page(), request.size());
+        var pageCriteria = buildPageCriteria(request);
 
         var result = userRepository.findAll(filter, pageCriteria);
         var content = result.content().stream().map(UserResponse::from).toList();
 
         return PageResponse.of(content, request.page(), request.size(), result.totalElements());
+    }
+
+    private PageCriteria buildPageCriteria(ListUsersRequest request) {
+        String sortBy = (request.sortBy() == null || request.sortBy().isBlank()) ? "createdAt" : request.sortBy();
+        if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
+            throw new IllegalArgumentException("Invalid sortBy field: " + sortBy);
+        }
+
+        PageCriteria.SortDirection direction;
+        try {
+            direction = (request.direction() == null || request.direction().isBlank())
+                    ? PageCriteria.SortDirection.ASC
+                    : PageCriteria.SortDirection.valueOf(request.direction().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid direction: " + request.direction());
+        }
+
+        return PageCriteria.of(request.page(), request.size(), sortBy, direction);
     }
 
     private User.Role parseRole(String value) {

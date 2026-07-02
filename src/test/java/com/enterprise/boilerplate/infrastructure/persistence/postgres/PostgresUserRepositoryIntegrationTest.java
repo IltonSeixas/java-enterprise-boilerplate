@@ -94,7 +94,7 @@ class PostgresUserRepositoryIntegrationTest {
         userRepository.save(User.create(Email.of("user1@example.com"),
                 PasswordHash.of("$argon2id$v=19$m=65536,t=3,p=4$c2FsdA$aGFzaA"), "User One", User.Role.USER));
 
-        var page = userRepository.findAll(new UserFilter(User.Role.ADMIN, null, null), new PageCriteria(0, 10));
+        var page = userRepository.findAll(new UserFilter(User.Role.ADMIN, null, null), PageCriteria.of(0, 10));
 
         assertThat(page.totalElements()).isEqualTo(1);
         assertThat(page.content()).hasSize(1);
@@ -108,8 +108,8 @@ class PostgresUserRepositoryIntegrationTest {
                     PasswordHash.of("$argon2id$v=19$m=65536,t=3,p=4$c2FsdA$aGFzaA"), "PageUser" + i, User.Role.USER));
         }
 
-        var firstPage = userRepository.findAll(UserFilter.all(), new PageCriteria(0, 2));
-        var secondPage = userRepository.findAll(UserFilter.all(), new PageCriteria(1, 2));
+        var firstPage = userRepository.findAll(UserFilter.all(), PageCriteria.of(0, 2));
+        var secondPage = userRepository.findAll(UserFilter.all(), PageCriteria.of(1, 2));
 
         assertThat(firstPage.content()).hasSize(2);
         assertThat(secondPage.content()).hasSize(2);
