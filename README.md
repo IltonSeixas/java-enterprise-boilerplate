@@ -52,7 +52,7 @@ interfaces/ → application/ → domain/
 infrastructure/ → application/ → domain/
 ```
 
-The `domain/` and `application/` packages never import from Spring, JPA, or any infrastructure library. This boundary is enforced through package conventions and code review — see [contributing.md](docs/contributing.md).
+The `domain/` and `application/` packages never import from Spring, JPA, or any infrastructure library. This boundary is enforced automatically at build time by `LayeredArchitectureTest` (ArchUnit) — see [ADR-0006](docs/adr/0006-archunit-architecture-tests.md) and [contributing.md](docs/contributing.md).
 
 ---
 
@@ -133,7 +133,7 @@ The `PasswordHasher` output port in `application/port/out/` abstracts the algori
 
 ### Audit Logging
 
-Every identity- and access-sensitive use case (registration, login success/failure, password change, role change, logout, token refresh) records an immutable `AuditEvent` through the `AuditPort` output port — see [ADR-0009](docs/adr/0009-domain-audit-log.md). The in-memory adapter is the zero-config default; the PostgreSQL adapter persists to a dedicated `audit_log` table and never fails the use case it observes, degrading gracefully if the audit store itself is unavailable.
+Every identity- and access-sensitive use case (registration, login success/failure, password change, role change, profile update, logout, token refresh) records an immutable `AuditEvent` through the `AuditPort` output port — see [ADR-0009](docs/adr/0009-domain-audit-log.md). The in-memory adapter is the zero-config default; the PostgreSQL adapter persists to a dedicated `audit_log` table and never fails the use case it observes, degrading gracefully if the audit store itself is unavailable.
 
 ---
 
@@ -157,7 +157,7 @@ Every identity- and access-sensitive use case (registration, login success/failu
 | `GET` | `/actuator/info` | Build metadata (artifact, version, build time) — requires authentication |
 | `GET` | `/actuator/prometheus` | Prometheus metrics |
 
-`GET /api/v1/users` accepts `role`, `active`, `name`, `page` (default `0`) and `size` (default `20`, max `100`) query parameters. Filtering and pagination are translated to a JPA `Specification` and `Pageable` at the persistence adapter — the domain and application layers only see framework-agnostic `UserFilter`/`PageCriteria`/`UserPage` types.
+`GET /api/v1/users` accepts `role`, `active`, `nameContains`, `page` (default `0`) and `size` (default `20`, max `100`) query parameters. Filtering and pagination are translated to a JPA `Specification` and `Pageable` at the persistence adapter — the domain and application layers only see framework-agnostic `UserFilter`/`PageCriteria`/`UserPage` types.
 
 `/actuator/health` aggregates the auto-configured `db`, `redis`, `diskSpace` and `ssl` indicators with three custom ones: `jwtKeys` (JWT signing key pair readability), `grpcServer` (embedded gRPC server liveness, also propagated to the standard `grpc.health.v1.Health` service so `grpc_health_probe` and `/actuator/health` always agree) and `auditLog` (Postgres audit log reachability, `postgres` profile only). See [docs/observability.md](docs/observability.md#health-checks) for details.
 

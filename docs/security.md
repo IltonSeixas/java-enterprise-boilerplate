@@ -111,7 +111,7 @@ config.setAllowCredentials(true);
 
 ## Input Validation
 
-All inputs are validated at the controller boundary using Jakarta Bean Validation before reaching any use case. Invalid input returns `400 Bad Request` with a structured error body via `@RestControllerAdvice` — never a stack trace.
+All inputs are validated at the controller boundary using Jakarta Bean Validation before reaching any use case. Invalid input returns `400 Bad Request` with a structured error body via `@RestControllerAdvice` (`GlobalExceptionHandler`) — never a stack trace.
 
 ```java
 public record RegisterUserRequest(
@@ -122,6 +122,19 @@ public record RegisterUserRequest(
 ```
 
 Domain-level invariants are re-enforced inside value object constructors regardless of what the controller does. The domain is the last line of defense.
+
+`GlobalExceptionHandler` maps every domain exception to a typed HTTP status:
+
+| Exception | HTTP Status | `type` URI |
+|---|---|---|
+| `InvalidPasswordException` | 401 | `invalid-credentials` |
+| `InvalidEmailException` | 400 | `invalid-email` |
+| `UserNotFoundException` | 404 | `user-not-found` |
+| `UserAlreadyExistsException` | 409 | `user-already-exists` |
+| `AccessDeniedException` | 403 | `access-denied` |
+| `MethodArgumentNotValidException` | 400 | `validation-error` |
+
+All error responses use the `application/problem+json` format (RFC 9457) — never raw exception messages or stack traces.
 
 ---
 
