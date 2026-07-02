@@ -42,8 +42,14 @@ src/main/java/com/enterprise/boilerplate/
 │   │   ├── Email.java                     # Record — validated on construction
 │   │   ├── PasswordHash.java              # Opaque wrapper (record)
 │   │   └── UserId.java                    # UUID newtype (record)
+│   ├── audit/
+│   │   ├── AuditEvent.java                # Immutable record: type, actor, target, occurred_at
+│   │   └── AuditEventType.java            # Enum: REGISTERED, LOGIN_SUCCESS, LOGIN_FAILURE, PASSWORD_CHANGED, PROFILE_UPDATED, ROLE_CHANGED, LOGOUT, TOKEN_REFRESHED
 │   ├── repository/
-│   │   └── UserRepository.java            # Interface: the only contract infra must fulfill
+│   │   ├── UserRepository.java            # Interface: the only contract infra must fulfill
+│   │   ├── UserFilter.java                # Value type: role/active/nameContains filter criteria
+│   │   ├── PageCriteria.java              # Value type: page/size
+│   │   └── UserPage.java                  # Value type: content + totalElements
 │   └── exception/
 │       ├── DomainException.java           # Sealed exception hierarchy root
 │       └── ...                            # InvalidEmailException, UserNotFoundException, etc.
@@ -59,23 +65,33 @@ src/main/java/com/enterprise/boilerplate/
 │   │   └── ChangePasswordUseCase.java
 │   ├── port/out/
 │   │   ├── PasswordHasherPort.java        # Interface: hash + verify
-│   │   └── TokenServicePort.java          # Interface: issue, validate and rotate JWTs
+│   │   ├── TokenServicePort.java          # Interface: issue, validate and rotate JWTs
+│   │   └── AuditPort.java                 # Interface: record(AuditEvent) — implemented by in-memory and PostgreSQL adapters
 │   └── dto/
 │       ├── RegisterUserRequest.java       # Records + Jakarta validation
 │       ├── LoginRequest.java
 │       ├── RefreshTokenRequest.java
 │       ├── ChangePasswordRequest.java
+│       ├── ChangeRoleRequest.java
 │       ├── UpdateProfileRequest.java
-│       ├── AuthResponse.java
+│       ├── ListUsersRequest.java
+│       ├── PageResponse.java
+│       ├── AuthResponse.java              # @JsonInclude(NON_NULL) — refreshToken omitted when null
 │       └── UserResponse.java
 │
 ├── infrastructure/
+│   ├── audit/
+│   │   ├── InMemoryAuditLog.java             # @Profile("inmemory") — default; never fails the caller
+│   │   ├── PostgresAuditLog.java             # @Profile("postgres") — REQUIRES_NEW transaction; degrades gracefully
+│   │   ├── AuditLogJpaEntity.java
+│   │   └── AuditLogHealthIndicator.java      # /actuator/health contributor (postgres profile only)
 │   ├── persistence/
 │   │   ├── memory/
-│   │   │   └── InMemoryUserRepository.java   # @Profile("inmemory") — default, zero-config
+│   │   │   └── InMemoryUserRepository.java   # @Profile("inmemory") — default, zero-config; email uniqueness enforced under lock
 │   │   └── postgres/
 │   │       ├── JpaUserRepository.java        # Spring Data JPA interface
 │   │       ├── UserJpaEntity.java            # JPA entity (separate from domain entity)
+│   │       ├── UserSpecifications.java       # JPA Specification for role/active/nameContains filtering
 │   │       └── PostgresUserRepository.java   # @Profile("postgres") — adapts JPA to UserRepository
 │   ├── security/
 │   │   ├── Argon2PasswordHasher.java         # BouncyCastle Argon2id, hand-rolled PHC encoding
@@ -86,7 +102,11 @@ src/main/java/com/enterprise/boilerplate/
 │   ├── config/
 │   │   ├── ApplicationConfig.java
 │   │   ├── RedisConfig.java
-│   │   └── SecurityConfig.java               # CORS, security headers, filter chain
+│   │   ├── SecurityConfig.java               # CORS, security headers, filter chain
+│   │   └── UseCaseConfig.java                # Explicit composition root — wires all use cases via @Bean
+│   ├── health/
+│   │   ├── GrpcServerHealthIndicator.java    # /actuator/health + grpc.health.v1.Health
+│   │   └── JwtKeysHealthIndicator.java       # /actuator/health — key pair readability
 │   └── telemetry/
 │       └── OpenTelemetryConfig.java
 │
@@ -142,9 +162,10 @@ public interface UserRepository {
     Optional<User> findById(UserId id);
     Optional<User> findByEmail(Email email);
     void save(User user);
+    void saveFirstOwner(User user);
     boolean existsByEmail(Email email);
     boolean hasOwner();
-    void saveFirstOwner(User user);
+    UserPage findAll(UserFilter filter, PageCriteria criteria);
 }
 ```
 
