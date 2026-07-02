@@ -72,7 +72,7 @@ class GrpcServerIntegrationTest {
         var refreshToken = new RefreshTokenUseCase(userRepository, tokenService, audit, accessTokenExpiryMinutes);
         var logoutUser = new LogoutUseCase(tokenService, audit);
         var getUser = new GetUserUseCase(userRepository);
-        var updateProfile = new UpdateProfileUseCase(userRepository);
+        var updateProfile = new UpdateProfileUseCase(userRepository, audit);
         var changePassword = new ChangePasswordUseCase(userRepository, hasher, tokenService, audit);
         var changeUserRole = new ChangeUserRoleUseCase(userRepository, audit);
 
