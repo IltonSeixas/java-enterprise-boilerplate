@@ -99,6 +99,27 @@ class InMemoryUserRepositoryTest {
     }
 
     @Test
+    void save_withDuplicateEmail_throwsUserAlreadyExistsException() {
+        User first = User.create(Email.of("dup@example.com"), HASH, "First", User.Role.USER);
+        User second = User.create(Email.of("dup@example.com"), HASH, "Second", User.Role.USER);
+        repository.save(first);
+
+        assertThatThrownBy(() -> repository.save(second))
+                .isInstanceOf(UserAlreadyExistsException.class);
+    }
+
+    @Test
+    void save_updatingExistingUser_doesNotThrow() {
+        User user = User.create(Email.of("update@example.com"), HASH, "Before", User.Role.USER);
+        repository.save(user);
+        user.updateProfile("After");
+
+        repository.save(user);
+
+        assertThat(repository.findById(user.getId()).map(User::getName)).contains("After");
+    }
+
+    @Test
     void findAll_withRoleFilter_returnsOnlyMatchingUsers() {
         repository.save(User.create(Email.of("admin@example.com"), HASH, "Admin", User.Role.ADMIN));
         repository.save(User.create(Email.of("user@example.com"), HASH, "Regular", User.Role.USER));

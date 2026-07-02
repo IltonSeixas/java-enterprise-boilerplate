@@ -51,8 +51,8 @@ public class UseCaseConfig {
     }
 
     @Bean
-    public UpdateProfileUseCase updateProfileUseCase(UserRepository userRepository) {
-        return new UpdateProfileUseCase(userRepository);
+    public UpdateProfileUseCase updateProfileUseCase(UserRepository userRepository, AuditPort audit) {
+        return new UpdateProfileUseCase(userRepository, audit);
     }
 
     @Bean
