@@ -1,4 +1,11 @@
 package com.enterprise.boilerplate.application.dto;
 
-public record ListUsersRequest(String role, Boolean active, String nameContains, int page, int size) {
+public record ListUsersRequest(
+        String role,
+        Boolean active,
+        String nameContains,
+        int page,
+        int size,
+        String sortBy,
+        String direction) {
 }

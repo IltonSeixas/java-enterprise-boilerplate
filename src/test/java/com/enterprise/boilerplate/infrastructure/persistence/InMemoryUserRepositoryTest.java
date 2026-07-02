@@ -124,7 +124,7 @@ class InMemoryUserRepositoryTest {
         repository.save(User.create(Email.of("admin@example.com"), HASH, "Admin", User.Role.ADMIN));
         repository.save(User.create(Email.of("user@example.com"), HASH, "Regular", User.Role.USER));
 
-        var page = repository.findAll(new UserFilter(User.Role.ADMIN, null, null), new PageCriteria(0, 10));
+        var page = repository.findAll(new UserFilter(User.Role.ADMIN, null, null), PageCriteria.of(0, 10));
 
         assertThat(page.content()).hasSize(1);
         assertThat(page.content().get(0).getRole()).isEqualTo(User.Role.ADMIN);
@@ -136,7 +136,7 @@ class InMemoryUserRepositoryTest {
         repository.save(User.create(Email.of("alice@example.com"), HASH, "Alice Wonderland", User.Role.USER));
         repository.save(User.create(Email.of("bob@example.com"), HASH, "Bob Builder", User.Role.USER));
 
-        var page = repository.findAll(new UserFilter(null, null, "ALICE"), new PageCriteria(0, 10));
+        var page = repository.findAll(new UserFilter(null, null, "ALICE"), PageCriteria.of(0, 10));
 
         assertThat(page.content()).hasSize(1);
         assertThat(page.content().get(0).getName()).isEqualTo("Alice Wonderland");
@@ -150,7 +150,7 @@ class InMemoryUserRepositoryTest {
         repository.save(active);
         repository.save(inactive);
 
-        var page = repository.findAll(new UserFilter(null, false, null), new PageCriteria(0, 10));
+        var page = repository.findAll(new UserFilter(null, false, null), PageCriteria.of(0, 10));
 
         assertThat(page.content()).hasSize(1);
         assertThat(page.content().get(0).getName()).isEqualTo("Inactive");
@@ -162,9 +162,9 @@ class InMemoryUserRepositoryTest {
             repository.save(User.create(Email.of("user" + i + "@example.com"), HASH, "User" + i, User.Role.USER));
         }
 
-        var firstPage = repository.findAll(UserFilter.all(), new PageCriteria(0, 2));
-        var secondPage = repository.findAll(UserFilter.all(), new PageCriteria(1, 2));
-        var thirdPage = repository.findAll(UserFilter.all(), new PageCriteria(2, 2));
+        var firstPage = repository.findAll(UserFilter.all(), PageCriteria.of(0, 2));
+        var secondPage = repository.findAll(UserFilter.all(), PageCriteria.of(1, 2));
+        var thirdPage = repository.findAll(UserFilter.all(), PageCriteria.of(2, 2));
 
         assertThat(firstPage.content()).hasSize(2);
         assertThat(secondPage.content()).hasSize(2);
@@ -176,7 +176,7 @@ class InMemoryUserRepositoryTest {
     void findAll_withPageBeyondResults_returnsEmptyContent() {
         repository.save(User.create(Email.of("solo@example.com"), HASH, "Solo", User.Role.USER));
 
-        var page = repository.findAll(UserFilter.all(), new PageCriteria(5, 10));
+        var page = repository.findAll(UserFilter.all(), PageCriteria.of(5, 10));
 
         assertThat(page.content()).isEmpty();
         assertThat(page.totalElements()).isEqualTo(1);

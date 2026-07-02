@@ -104,8 +104,12 @@ class PostgresUserRepository implements UserRepository {
     @CircuitBreaker(name = "postgres")
     @Retry(name = "postgres-read")
     public UserPage findAll(UserFilter filter, PageCriteria pageCriteria) {
+        Sort sort = pageCriteria.direction() == PageCriteria.SortDirection.ASC
+                ? Sort.by(pageCriteria.sortBy()).ascending()
+                : Sort.by(pageCriteria.sortBy()).descending();
+
         var pageable = org.springframework.data.domain.PageRequest.of(
-                pageCriteria.page(), pageCriteria.size(), Sort.by("createdAt").ascending());
+                pageCriteria.page(), pageCriteria.size(), sort);
 
         var page = jpa.findAll(UserSpecifications.matching(filter), pageable);
 

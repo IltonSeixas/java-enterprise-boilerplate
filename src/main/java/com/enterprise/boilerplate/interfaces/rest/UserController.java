@@ -66,9 +66,11 @@ public class UserController {
                                                             @RequestParam(required = false) String nameContains,
                                                             @RequestParam(defaultValue = "0") @Min(0) int page,
                                                             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+                                                            @RequestParam(defaultValue = "createdAt") String sortBy,
+                                                            @RequestParam(defaultValue = "ASC") String direction,
                                                             Authentication authentication) {
         String callerId = (String) authentication.getPrincipal();
-        var request = new ListUsersRequest(role, active, nameContains, page, size);
+        var request = new ListUsersRequest(role, active, nameContains, page, size, sortBy, direction);
         return ResponseEntity.ok(listUsersUseCase.execute(callerId, request));
     }
 

@@ -78,12 +78,22 @@ public class InMemoryUserRepository implements UserRepository {
 
     @Override
     public UserPage findAll(UserFilter filter, PageCriteria pageCriteria) {
+        Comparator<User> comparator = switch (pageCriteria.sortBy()) {
+            case "name"      -> Comparator.comparing(User::getName, String.CASE_INSENSITIVE_ORDER);
+            case "email"     -> Comparator.comparing(u -> u.getEmail().value(), String.CASE_INSENSITIVE_ORDER);
+            case "role"      -> Comparator.comparing(u -> u.getRole().name());
+            default          -> Comparator.comparing(User::getCreatedAt);
+        };
+        if (pageCriteria.direction() == PageCriteria.SortDirection.DESC) {
+            comparator = comparator.reversed();
+        }
+
         List<User> matched = store.values().stream()
                 .filter(u -> filter.role() == null || u.getRole() == filter.role())
                 .filter(u -> filter.active() == null || u.isActive() == filter.active())
                 .filter(u -> filter.nameContains() == null
                         || u.getName().toLowerCase().contains(filter.nameContains().toLowerCase()))
-                .sorted(Comparator.comparing(User::getCreatedAt))
+                .sorted(comparator)
                 .toList();
 
         int from = Math.min(pageCriteria.page() * pageCriteria.size(), matched.size());
