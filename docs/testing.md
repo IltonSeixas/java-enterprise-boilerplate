@@ -55,24 +55,37 @@ src/test/java/com/enterprise/boilerplate/
 ├── infrastructure/
 │   ├── audit/
 │   │   ├── InMemoryAuditLogTest.java
-│   │   └── AuditLogHealthIndicatorTest.java
+│   │   ├── AuditLogHealthIndicatorTest.java
+│   │   └── PostgresAuditLogTest.java         # verifies graceful degradation on JPA failure
+│   ├── cache/
+│   │   ├── RedisRateLimitStoreTest.java       # Lua script, null-safety, TTL forwarding, fallback -1
+│   │   └── RedisTokenStoreTest.java          # set/get/delete delegation to RedisTemplate
 │   ├── health/
 │   │   ├── GrpcServerHealthIndicatorTest.java
 │   │   └── JwtKeysHealthIndicatorTest.java
 │   ├── persistence/
-│   │   ├── InMemoryUserRepositoryTest.java    # in-memory adapter tests (including email uniqueness guard)
+│   │   ├── InMemoryUserRepositoryTest.java    # in-memory adapter (including email uniqueness guard)
 │   │   └── postgres/
-│   │       └── PostgresUserRepositoryIntegrationTest.java  # @Tag("integration") — Testcontainers PostgreSQL
+│   │       ├── FlywayConcurrentMigrationIntegrationTest.java  # @Tag("integration") — 8 concurrent replicas
+│   │       ├── PostgresUserRepositoryIntegrationTest.java     # @Tag("integration") — Testcontainers PostgreSQL
+│   │       └── UserSpecificationsTest.java    # role/active/nameContains predicates, % and _ escaping
 │   └── security/
+│       ├── Argon2PasswordHasherTest.java      # hash format, unique salts, verify match/mismatch/malformed
+│       ├── JwtAuthenticationFilterTest.java   # no header, bad scheme, invalid token, active/inactive user
 │       └── JwtTokenServiceTest.java
 │
 ├── interfaces/
 │   ├── filter/
-│   │   └── AuthRateLimitFilterTest.java
+│   │   ├── AuthRateLimitFilterTest.java
+│   │   └── RequestLoggingFilterTest.java      # chain delegation, log-injection sanitization
 │   ├── grpc/
-│   │   └── GrpcServerIntegrationTest.java     # @Tag("integration") — in-process gRPC suite
+│   │   ├── GrpcAuthenticationInterceptorTest.java  # public passthrough, missing/malformed/invalid token
+│   │   ├── GrpcExceptionMapperTest.java            # all 11 exception → gRPC Status mappings
+│   │   └── GrpcServerIntegrationTest.java          # @Tag("integration") — in-process gRPC suite
 │   └── rest/
-│       ├── GlobalExceptionHandlerTest.java    # verifies 401/400 mappings for domain exceptions
+│       ├── AuthControllerTest.java           # register/login/refresh/logout — happy and error paths
+│       ├── GlobalExceptionHandlerTest.java   # 401/400 mappings for domain exceptions
+│       ├── UserControllerTest.java           # all user endpoints — happy and error paths, sort params
 │       └── UserControllerValidationTest.java
 │
 └── architecture/
@@ -225,13 +238,26 @@ Never write implementation code without a failing test first.
 
 ---
 
-## Coverage Expectations
+## Coverage
+
+```bash
+./mvnw test jacoco:report
+# Report written to target/site/jacoco/index.html
+```
+
+Current coverage (178 unit tests, excluding `@Tag("integration")`):
+
+| Metric | Coverage |
+|---|---|
+| Line | 78% |
+| Branch | 77% |
+| Method | 76% |
 
 | Layer | Expectation |
 |---|---|
 | Domain (entities + value objects) | Every invariant covered, valid and invalid paths |
 | Application (use cases) | Every success and failure path covered with mocked ports |
 | Infrastructure adapters | Behavior verified against the port contract |
-| Interfaces (gRPC) | Covered end to end by `@Tag("integration")` suites |
+| Interfaces (REST + gRPC) | Controllers and interceptors covered with MockMvc / in-process gRPC stubs |
 
-There is no enforced coverage threshold tool wired into the build — coverage is maintained through discipline and code review, consistent with the TDD workflow above.
+There is no enforced coverage threshold wired into the build — coverage is maintained through the TDD workflow and code review. Integration tests (`@Tag("integration")`) are excluded from the JaCoCo report by default because they require Docker; run them separately and recheck if you add infrastructure adapters.

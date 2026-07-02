@@ -157,7 +157,7 @@ Every identity- and access-sensitive use case (registration, login success/failu
 | `GET` | `/actuator/info` | Build metadata (artifact, version, build time) — requires authentication |
 | `GET` | `/actuator/prometheus` | Prometheus metrics |
 
-`GET /api/v1/users` accepts `role`, `active`, `nameContains`, `page` (default `0`) and `size` (default `20`, max `100`) query parameters. Filtering and pagination are translated to a JPA `Specification` and `Pageable` at the persistence adapter — the domain and application layers only see framework-agnostic `UserFilter`/`PageCriteria`/`UserPage` types.
+`GET /api/v1/users` accepts `role`, `active`, `nameContains`, `page` (default `0`), `size` (default `20`, max `100`), `sortBy` (default `createdAt`; allowed values: `createdAt`, `name`, `email`, `role`) and `direction` (`ASC` or `DESC`, default `ASC`) query parameters. The `sortBy` value is validated against an explicit allowlist before reaching the persistence adapter — unknown fields are rejected with `400 Bad Request`. Filtering, pagination, and sorting are translated to a JPA `Specification`/`Pageable` at the persistence adapter; the domain and application layers only see framework-agnostic `UserFilter`/`PageCriteria`/`UserPage` types.
 
 `/actuator/health` aggregates the auto-configured `db`, `redis`, `diskSpace` and `ssl` indicators with three custom ones: `jwtKeys` (JWT signing key pair readability), `grpcServer` (embedded gRPC server liveness, also propagated to the standard `grpc.health.v1.Health` service so `grpc_health_probe` and `/actuator/health` always agree) and `auditLog` (Postgres audit log reachability, `postgres` profile only). See [docs/observability.md](docs/observability.md#health-checks) for details.
 
