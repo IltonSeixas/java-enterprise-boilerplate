@@ -36,25 +36,44 @@ src/test/java/com/enterprise/boilerplate/
 │   └── entity/
 │       └── UserTest.java                     # entity invariant tests
 │
+├── domain/
+│   └── audit/
+│       └── AuditEventTest.java               # audit event construction and invariants
+│
 ├── application/
 │   └── usecase/
 │       ├── RegisterUserUseCaseTest.java       # use case tests with Mockito
 │       ├── LoginUserUseCaseTest.java
 │       ├── RefreshTokenUseCaseTest.java
 │       ├── GetUserUseCaseTest.java
-│       ├── UpdateProfileUseCaseTest.java
+│       ├── ListUsersUseCaseTest.java
+│       ├── UpdateProfileUseCaseTest.java      # includes AuditPort mock — verifies PROFILE_UPDATED is recorded
 │       ├── ChangePasswordUseCaseTest.java
+│       ├── ChangeUserRoleUseCaseTest.java
 │       └── LogoutUseCaseTest.java
 │
 ├── infrastructure/
-│   └── persistence/
-│       ├── InMemoryUserRepositoryTest.java    # in-memory adapter tests
-│       └── postgres/
-│           └── PostgresUserRepositoryIntegrationTest.java  # @Tag("integration") — Testcontainers PostgreSQL
+│   ├── audit/
+│   │   ├── InMemoryAuditLogTest.java
+│   │   └── AuditLogHealthIndicatorTest.java
+│   ├── health/
+│   │   ├── GrpcServerHealthIndicatorTest.java
+│   │   └── JwtKeysHealthIndicatorTest.java
+│   ├── persistence/
+│   │   ├── InMemoryUserRepositoryTest.java    # in-memory adapter tests (including email uniqueness guard)
+│   │   └── postgres/
+│   │       └── PostgresUserRepositoryIntegrationTest.java  # @Tag("integration") — Testcontainers PostgreSQL
+│   └── security/
+│       └── JwtTokenServiceTest.java
 │
 ├── interfaces/
-│   └── grpc/
-│       └── GrpcServerIntegrationTest.java     # @Tag("integration") — in-process gRPC suite
+│   ├── filter/
+│   │   └── AuthRateLimitFilterTest.java
+│   ├── grpc/
+│   │   └── GrpcServerIntegrationTest.java     # @Tag("integration") — in-process gRPC suite
+│   └── rest/
+│       ├── GlobalExceptionHandlerTest.java    # verifies 401/400 mappings for domain exceptions
+│       └── UserControllerValidationTest.java
 │
 └── architecture/
     └── LayeredArchitectureTest.java           # ArchUnit — enforces the Clean Architecture dependency rule
