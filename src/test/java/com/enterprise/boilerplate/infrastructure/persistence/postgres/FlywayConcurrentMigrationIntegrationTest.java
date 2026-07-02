@@ -58,10 +58,27 @@ class FlywayConcurrentMigrationIntegrationTest {
                 Integer.class);
         assertThat(usersTableCount).isEqualTo(1);
 
-        Integer auditTableCount = jdbcTemplate.queryForObject(
+        // audit_log is the partitioned parent; audit_log_legacy is the default partition.
+        // Both appear in pg_class so both count as "tables" in information_schema.
+        Integer auditLogCount = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_name = 'audit_log'",
                 Integer.class);
-        assertThat(auditTableCount).isEqualTo(1);
+        assertThat(auditLogCount).isEqualTo(1);
+
+        Integer legacyCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.tables WHERE table_name = 'audit_log_legacy'",
+                Integer.class);
+        assertThat(legacyCount).isEqualTo(1);
+
+        // Exactly 3 monthly partitions were pre-created (current + next 2 months).
+        // Pattern matches audit_log_YYYY_MM (e.g. audit_log_2026_07).
+        Integer monthlyPartitionCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM pg_class c "
+                + "JOIN pg_inherits i ON c.oid = i.inhrelid "
+                + "JOIN pg_class p ON i.inhparent = p.oid "
+                + "WHERE p.relname = 'audit_log' AND c.relname != 'audit_log_legacy'",
+                Integer.class);
+        assertThat(monthlyPartitionCount).isEqualTo(3);
     }
 
     private static Callable<Void> migrationTask() {

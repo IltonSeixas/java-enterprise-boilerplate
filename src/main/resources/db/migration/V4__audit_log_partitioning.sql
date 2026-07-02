@@ -37,19 +37,30 @@ ALTER TABLE audit_log ATTACH PARTITION audit_log_legacy DEFAULT;
 -- Pre-create partitions for the current and next two months so the application
 -- never hits the default partition for recent writes. Ops should add partitions
 -- monthly via: docs/operations.md > "Adding an audit_log partition".
+--
+-- Each CREATE is wrapped in its own exception handler because IF NOT EXISTS is
+-- not atomic under concurrency: two Flyway instances running in parallel (e.g.
+-- during a rolling deploy) can both pass the existence check before either
+-- commits, causing the second to raise duplicate_table (42P07). We catch and
+-- swallow that specific error so the migration is idempotent under concurrency.
 DO $$
 DECLARE
-    m DATE;
+    m    DATE;
+    name TEXT;
 BEGIN
     FOR i IN 0..2 LOOP
-        m := DATE_TRUNC('month', NOW()) + (i || ' month')::INTERVAL;
-        EXECUTE format(
-            'CREATE TABLE IF NOT EXISTS audit_log_%s PARTITION OF audit_log '
-            'FOR VALUES FROM (%L) TO (%L)',
-            TO_CHAR(m, 'YYYY_MM'),
-            m,
-            m + INTERVAL '1 month'
-        );
+        m    := DATE_TRUNC('month', NOW()) + (i || ' month')::INTERVAL;
+        name := TO_CHAR(m, 'YYYY_MM');
+        BEGIN
+            EXECUTE format(
+                'CREATE TABLE audit_log_%s PARTITION OF audit_log '
+                'FOR VALUES FROM (%L) TO (%L)',
+                name, m, m + INTERVAL '1 month'
+            );
+        EXCEPTION WHEN duplicate_table THEN
+            -- another replica already created this partition; safe to ignore
+            NULL;
+        END;
     END LOOP;
 END;
 $$;
