@@ -255,6 +255,19 @@
         </dependency>
     </dependencies>
 
+    <!-- jackson-databind 2.22.0 is released via the Spring milestone repository
+         (not yet on Maven Central). This section ensures any developer can
+         resolve it without additional local settings.xml configuration.
+         Remove this block once 2.22.0 lands on Maven Central. -->
+    <repositories>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+    </repositories>
+
     <build>
         <extensions>
             <extension>

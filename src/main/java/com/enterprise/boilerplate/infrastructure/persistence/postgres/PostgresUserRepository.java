@@ -13,7 +13,6 @@ import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.context.annotation.Profile;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,25 +75,23 @@ class PostgresUserRepository implements UserRepository {
     @Transactional
     @CircuitBreaker(name = "postgres")
     public void saveFirstOwner(User user) {
-        try {
-            int inserted = entityManager.createNativeQuery(
-                            "INSERT INTO users (id, email, password_hash, name, role, active, created_at, updated_at) " +
-                            "SELECT :id, :email, :passwordHash, :name, 'OWNER', true, :createdAt, :updatedAt " +
-                            "WHERE NOT EXISTS (SELECT 1 FROM users WHERE role = 'OWNER')")
-                    .setParameter("id", user.getId().value())
-                    .setParameter("email", user.getEmail().value())
-                    .setParameter("passwordHash", user.getPasswordHash().value())
-                    .setParameter("name", user.getName())
-                    .setParameter("createdAt", user.getCreatedAt())
-                    .setParameter("updatedAt", user.getUpdatedAt())
-                    .executeUpdate();
+        // ON CONFLICT DO NOTHING relies on the partial unique index defined in V1:
+        //   CREATE UNIQUE INDEX uq_users_owner_role ON users ((role)) WHERE role = 'OWNER'
+        // Any concurrent insert that races through will be silently rejected by the index,
+        // and inserted == 0 surfaces that as the domain exception.
+        int inserted = entityManager.createNativeQuery(
+                        "INSERT INTO users (id, email, password_hash, name, role, active, created_at, updated_at) " +
+                        "VALUES (:id, :email, :passwordHash, :name, 'OWNER', true, :createdAt, :updatedAt) " +
+                        "ON CONFLICT ((role)) WHERE role = 'OWNER' DO NOTHING")
+                .setParameter("id", user.getId().value())
+                .setParameter("email", user.getEmail().value())
+                .setParameter("passwordHash", user.getPasswordHash().value())
+                .setParameter("name", user.getName())
+                .setParameter("createdAt", user.getCreatedAt())
+                .setParameter("updatedAt", user.getUpdatedAt())
+                .executeUpdate();
 
-            if (inserted == 0) {
-                throw UserAlreadyExistsException.ownerAlreadyExists();
-            }
-        } catch (DataIntegrityViolationException e) {
-            // Two concurrent requests both passed the WHERE NOT EXISTS guard before either committed.
-            // The partial unique index on (role) WHERE role = 'OWNER' blocks the second insert.
+        if (inserted == 0) {
             throw UserAlreadyExistsException.ownerAlreadyExists();
         }
     }
