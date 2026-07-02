@@ -81,6 +81,7 @@ src/test/java/com/enterprise/boilerplate/
 │   ├── grpc/
 │   │   ├── GrpcAuthenticationInterceptorTest.java  # public passthrough, missing/malformed/invalid token
 │   │   ├── GrpcExceptionMapperTest.java            # all 11 exception → gRPC Status mappings
+│   │   ├── GrpcRateLimitInterceptorTest.java       # rate-limit for Register/Login/RefreshToken, fallback, forwarded-for
 │   │   └── GrpcServerIntegrationTest.java          # @Tag("integration") — in-process gRPC suite
 │   └── rest/
 │       ├── AuthControllerTest.java           # register/login/refresh/logout — happy and error paths
@@ -245,7 +246,7 @@ Never write implementation code without a failing test first.
 # Report written to target/site/jacoco/index.html
 ```
 
-Current coverage (178 unit tests, excluding `@Tag("integration")`):
+Current coverage (186 unit tests, excluding `@Tag("integration")`):
 
 | Metric | Coverage |
 |---|---|
