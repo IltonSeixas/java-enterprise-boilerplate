@@ -5,6 +5,7 @@ public enum AuditEventType {
     LOGIN_SUCCEEDED,
     LOGIN_FAILED,
     PASSWORD_CHANGED,
+    PROFILE_UPDATED,
     ROLE_CHANGED,
     LOGOUT,
     TOKEN_REFRESHED
