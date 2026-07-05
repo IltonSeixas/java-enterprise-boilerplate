@@ -21,6 +21,7 @@
     <properties>
         <java.version>21</java.version>
         <commons-compress.version>1.27.1</commons-compress.version>
+        <tomcat.version>11.0.23</tomcat.version>
         <jackson.version>2.22.0</jackson.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.8.9</springdoc.version>
@@ -68,6 +69,23 @@
                 <version>${jackson.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!-- CVE-2026-55276 / CVE-2026-53434 / CVE-2026-53404: force tomcat-embed-* >= 11.0.23;
+                 Spring Boot 4.1.0 BOM pins 11.0.22 which is in the vulnerable range -->
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-core</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-el</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-websocket</artifactId>
+                <version>${tomcat.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
