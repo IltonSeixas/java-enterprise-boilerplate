@@ -1,21 +1,23 @@
 package com.enterprise.boilerplate.domain.repository;
 
+import com.enterprise.boilerplate.domain.exception.DomainValidationException;
+
 public record PageCriteria(int page, int size, String sortBy, SortDirection direction) {
 
     public enum SortDirection { ASC, DESC }
 
     public PageCriteria {
         if (page < 0) {
-            throw new IllegalArgumentException("page must not be negative");
+            throw new DomainValidationException("page must not be negative");
         }
         if (size < 1) {
-            throw new IllegalArgumentException("size must be positive");
+            throw new DomainValidationException("size must be positive");
         }
         if (sortBy == null || sortBy.isBlank()) {
-            throw new IllegalArgumentException("sortBy must not be blank");
+            throw new DomainValidationException("sortBy must not be blank");
         }
         if (direction == null) {
-            throw new IllegalArgumentException("direction must not be null");
+            throw new DomainValidationException("direction must not be null");
         }
     }
 
