@@ -69,7 +69,7 @@ class RefreshTokenUseCaseTest {
     void execute_whenUserNoLongerExists_throwsUserNotFoundException() {
         var useCase = newUseCase();
         User user = activeUser();
-        String userId = user.getId().toString();
+        String userId = user.id().toString();
         when(tokenService.resolveUserIdFromRefreshToken(REFRESH_TOKEN)).thenReturn(Optional.of(userId));
         when(userRepository.findById(UserId.of(userId))).thenReturn(Optional.empty());
 
@@ -82,7 +82,7 @@ class RefreshTokenUseCaseTest {
         var useCase = newUseCase();
         User user = activeUser();
         user.deactivate();
-        String userId = user.getId().toString();
+        String userId = user.id().toString();
         when(tokenService.resolveUserIdFromRefreshToken(REFRESH_TOKEN)).thenReturn(Optional.of(userId));
         when(userRepository.findById(UserId.of(userId))).thenReturn(Optional.of(user));
 
@@ -98,7 +98,7 @@ class RefreshTokenUseCaseTest {
     void execute_withValidToken_rotatesTokenPairAndRecordsAuditEvent() {
         var useCase = newUseCase();
         User user = activeUser();
-        String userId = user.getId().toString();
+        String userId = user.id().toString();
         when(tokenService.resolveUserIdFromRefreshToken(REFRESH_TOKEN)).thenReturn(Optional.of(userId));
         when(userRepository.findById(UserId.of(userId))).thenReturn(Optional.of(user));
         when(tokenService.issueAccessToken(user)).thenReturn("new-access-token");

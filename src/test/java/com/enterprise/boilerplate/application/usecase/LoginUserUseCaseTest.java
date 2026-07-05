@@ -82,7 +82,7 @@ class LoginUserUseCaseTest {
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(audit).record(captor.capture());
         assertThat(captor.getValue().type()).isEqualTo(AuditEventType.LOGIN_FAILED);
-        assertThat(captor.getValue().actorUserId()).isEqualTo(user.getId().toString());
+        assertThat(captor.getValue().actorUserId()).isEqualTo(user.id().toString());
     }
 
     @Test
@@ -99,7 +99,7 @@ class LoginUserUseCaseTest {
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(audit).record(captor.capture());
         assertThat(captor.getValue().type()).isEqualTo(AuditEventType.LOGIN_FAILED);
-        assertThat(captor.getValue().actorUserId()).isEqualTo(user.getId().toString());
+        assertThat(captor.getValue().actorUserId()).isEqualTo(user.id().toString());
     }
 
     @Test
@@ -121,6 +121,6 @@ class LoginUserUseCaseTest {
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(audit).record(captor.capture());
         assertThat(captor.getValue().type()).isEqualTo(AuditEventType.LOGIN_SUCCEEDED);
-        assertThat(captor.getValue().actorUserId()).isEqualTo(user.getId().toString());
+        assertThat(captor.getValue().actorUserId()).isEqualTo(user.id().toString());
     }
 }

@@ -71,10 +71,10 @@ class ChangePasswordUseCaseTest {
         var useCase = newUseCase();
         User user = existingUser();
         var request = new ChangePasswordRequest("wrongpassword", "newpassword1");
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(userRepository.findById(user.id())).thenReturn(Optional.of(user));
         when(passwordHasher.verify(request.currentPassword(), CURRENT_HASH)).thenReturn(false);
 
-        assertThatThrownBy(() -> useCase.execute(user.getId().toString(), request))
+        assertThatThrownBy(() -> useCase.execute(user.id().toString(), request))
                 .isInstanceOf(InvalidPasswordException.class);
 
         verify(userRepository, never()).save(user);
@@ -86,15 +86,15 @@ class ChangePasswordUseCaseTest {
     void execute_withValidCurrentPassword_updatesHashRevokesAllSessionsAndRecordsAuditEvent() {
         var useCase = newUseCase();
         User user = existingUser();
-        String userId = user.getId().toString();
+        String userId = user.id().toString();
         var request = new ChangePasswordRequest("currentpassword", "newpassword1");
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(userRepository.findById(user.id())).thenReturn(Optional.of(user));
         when(passwordHasher.verify(request.currentPassword(), CURRENT_HASH)).thenReturn(true);
         when(passwordHasher.hash(request.newPassword())).thenReturn(NEW_HASH);
 
         useCase.execute(userId, request);
 
-        assertThat(user.getPasswordHash()).isEqualTo(NEW_HASH);
+        assertThat(user.passwordHash()).isEqualTo(NEW_HASH);
         verify(userRepository).save(user);
         verify(tokenService).revokeAllRefreshTokens(userId);
 

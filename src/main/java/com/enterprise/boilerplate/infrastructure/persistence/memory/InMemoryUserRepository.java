@@ -33,7 +33,7 @@ public class InMemoryUserRepository implements UserRepository {
     @Override
     public Optional<User> findByEmail(Email email) {
         return store.values().stream()
-                .filter(u -> u.getEmail().equals(email))
+                .filter(u -> u.email().equals(email))
                 .findFirst();
     }
 
@@ -41,11 +41,11 @@ public class InMemoryUserRepository implements UserRepository {
     public void save(User user) {
         writeLock.lock();
         try {
-            String currentId = user.getId().toString();
+            String currentId = user.id().toString();
             boolean emailTaken = store.values().stream()
-                    .anyMatch(u -> u.getEmail().equals(user.getEmail()) && !u.getId().toString().equals(currentId));
+                    .anyMatch(u -> u.email().equals(user.email()) && !u.id().toString().equals(currentId));
             if (emailTaken) {
-                throw new UserAlreadyExistsException(user.getEmail().value());
+                throw new UserAlreadyExistsException(user.email().value());
             }
             store.put(currentId, user);
         } finally {
@@ -55,12 +55,12 @@ public class InMemoryUserRepository implements UserRepository {
 
     @Override
     public boolean existsByEmail(Email email) {
-        return store.values().stream().anyMatch(u -> u.getEmail().equals(email));
+        return store.values().stream().anyMatch(u -> u.email().equals(email));
     }
 
     @Override
     public boolean hasOwner() {
-        return store.values().stream().anyMatch(u -> u.getRole() == User.Role.OWNER);
+        return store.values().stream().anyMatch(u -> u.role() == User.Role.OWNER);
     }
 
     @Override
@@ -70,7 +70,7 @@ public class InMemoryUserRepository implements UserRepository {
             if (hasOwner()) {
                 throw UserAlreadyExistsException.ownerAlreadyExists();
             }
-            store.put(user.getId().toString(), user);
+            store.put(user.id().toString(), user);
         } finally {
             writeLock.unlock();
         }
@@ -79,20 +79,20 @@ public class InMemoryUserRepository implements UserRepository {
     @Override
     public UserPage findAll(UserFilter filter, PageCriteria pageCriteria) {
         Comparator<User> comparator = switch (pageCriteria.sortBy()) {
-            case "name"      -> Comparator.comparing(User::getName, String.CASE_INSENSITIVE_ORDER);
-            case "email"     -> Comparator.comparing(u -> u.getEmail().value(), String.CASE_INSENSITIVE_ORDER);
-            case "role"      -> Comparator.comparing(u -> u.getRole().name());
-            default          -> Comparator.comparing(User::getCreatedAt);
+            case "name"      -> Comparator.comparing(User::name, String.CASE_INSENSITIVE_ORDER);
+            case "email"     -> Comparator.comparing(u -> u.email().value(), String.CASE_INSENSITIVE_ORDER);
+            case "role"      -> Comparator.comparing(u -> u.role().name());
+            default          -> Comparator.comparing(User::createdAt);
         };
         if (pageCriteria.direction() == PageCriteria.SortDirection.DESC) {
             comparator = comparator.reversed();
         }
 
         List<User> matched = store.values().stream()
-                .filter(u -> filter.role() == null || u.getRole() == filter.role())
-                .filter(u -> filter.active() == null || u.isActive() == filter.active())
+                .filter(u -> filter.role() == null || u.role() == filter.role())
+                .filter(u -> filter.active() == null || u.active() == filter.active())
                 .filter(u -> filter.nameContains() == null
-                        || u.getName().toLowerCase().contains(filter.nameContains().toLowerCase()))
+                        || u.name().toLowerCase().contains(filter.nameContains().toLowerCase()))
                 .sorted(comparator)
                 .toList();
 

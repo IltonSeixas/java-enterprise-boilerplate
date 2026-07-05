@@ -2,6 +2,8 @@ package com.enterprise.boilerplate.interfaces.grpc;
 
 import com.enterprise.boilerplate.application.port.out.RateLimitPort;
 import com.enterprise.boilerplate.config.properties.RateLimitProperties;
+import io.grpc.Attributes;
+import io.grpc.Grpc;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.ServerCall;
@@ -14,6 +16,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.net.InetSocketAddress;
 import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +35,10 @@ class GrpcRateLimitInterceptorTest {
     @Mock private MethodDescriptor<Object, Object> methodDescriptor;
 
     private GrpcRateLimitInterceptor interceptor;
+
+    private static final Attributes REMOTE_ATTRS = Attributes.newBuilder()
+            .set(Grpc.TRANSPORT_ATTR_REMOTE_ADDR, new InetSocketAddress("203.0.113.7", 54321))
+            .build();
 
     @BeforeEach
     void setUp() {
@@ -55,6 +62,7 @@ class GrpcRateLimitInterceptorTest {
     @Test
     void checksRateLimit_forRegister() {
         when(methodDescriptor.getFullMethodName()).thenReturn("boilerplate.v1.AuthService/Register");
+        when(call.getAttributes()).thenReturn(REMOTE_ATTRS);
         when(rateLimitPort.increment(any(), any(Duration.class))).thenReturn(1L);
         when(next.startCall(any(), any())).thenReturn(listener);
 
@@ -66,6 +74,7 @@ class GrpcRateLimitInterceptorTest {
     @Test
     void checksRateLimit_forLogin() {
         when(methodDescriptor.getFullMethodName()).thenReturn("boilerplate.v1.AuthService/Login");
+        when(call.getAttributes()).thenReturn(REMOTE_ATTRS);
         when(rateLimitPort.increment(any(), any(Duration.class))).thenReturn(1L);
         when(next.startCall(any(), any())).thenReturn(listener);
 
@@ -77,6 +86,7 @@ class GrpcRateLimitInterceptorTest {
     @Test
     void checksRateLimit_forRefreshToken() {
         when(methodDescriptor.getFullMethodName()).thenReturn("boilerplate.v1.AuthService/RefreshToken");
+        when(call.getAttributes()).thenReturn(REMOTE_ATTRS);
         when(rateLimitPort.increment(any(), any(Duration.class))).thenReturn(1L);
         when(next.startCall(any(), any())).thenReturn(listener);
 
@@ -88,6 +98,7 @@ class GrpcRateLimitInterceptorTest {
     @Test
     void closesCall_withResourceExhausted_whenLimitExceeded() {
         when(methodDescriptor.getFullMethodName()).thenReturn("boilerplate.v1.AuthService/Login");
+        when(call.getAttributes()).thenReturn(REMOTE_ATTRS);
         when(rateLimitPort.increment(any(), any(Duration.class)))
                 .thenReturn((long) GrpcRateLimitInterceptor.MAX_REQUESTS + 1);
 
@@ -103,6 +114,7 @@ class GrpcRateLimitInterceptorTest {
     @Test
     void allowsRequest_whenCountIsExactlyAtLimit() {
         when(methodDescriptor.getFullMethodName()).thenReturn("boilerplate.v1.AuthService/Login");
+        when(call.getAttributes()).thenReturn(REMOTE_ATTRS);
         when(rateLimitPort.increment(any(), any(Duration.class)))
                 .thenReturn((long) GrpcRateLimitInterceptor.MAX_REQUESTS);
         when(next.startCall(any(), any())).thenReturn(listener);
@@ -116,6 +128,7 @@ class GrpcRateLimitInterceptorTest {
     @Test
     void usesFallback_whenRedisUnavailable() {
         when(methodDescriptor.getFullMethodName()).thenReturn("boilerplate.v1.AuthService/Login");
+        when(call.getAttributes()).thenReturn(REMOTE_ATTRS);
         when(rateLimitPort.increment(any(), any(Duration.class))).thenReturn(-1L);
         when(next.startCall(any(), any())).thenReturn(listener);
 
@@ -145,5 +158,39 @@ class GrpcRateLimitInterceptorTest {
         verify(rateLimitPort).increment(keyCaptor.capture(), any());
         // Rightmost hop from the header should be the key suffix.
         assertThat(keyCaptor.getValue()).endsWith("172.16.0.1");
+    }
+
+    @Test
+    void usesTransportRemoteAddress_whenTrustForwardedIsDisabled() {
+        when(methodDescriptor.getFullMethodName()).thenReturn("boilerplate.v1.AuthService/Login");
+        when(call.getAttributes()).thenReturn(REMOTE_ATTRS);
+        when(rateLimitPort.increment(any(), any(Duration.class))).thenReturn(1L);
+        when(next.startCall(any(), any())).thenReturn(listener);
+
+        interceptor.interceptCall(call, new Metadata(), next);
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(rateLimitPort).increment(keyCaptor.capture(), any());
+        assertThat(keyCaptor.getValue()).endsWith("203.0.113.7");
+    }
+
+    @Test
+    void ignoresSpoofedRemoteAddrMetadataHeader_whenTrustForwardedIsDisabled() {
+        when(methodDescriptor.getFullMethodName()).thenReturn("boilerplate.v1.AuthService/Login");
+        when(call.getAttributes()).thenReturn(REMOTE_ATTRS);
+        when(rateLimitPort.increment(any(), any(Duration.class))).thenReturn(1L);
+        when(next.startCall(any(), any())).thenReturn(listener);
+
+        Metadata headers = new Metadata();
+        Metadata.Key<String> spoofedKey =
+                Metadata.Key.of("x-remote-addr", Metadata.ASCII_STRING_MARSHALLER);
+        headers.put(spoofedKey, "1.2.3.4");
+
+        interceptor.interceptCall(call, headers, next);
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(rateLimitPort).increment(keyCaptor.capture(), any());
+        // Must use the real transport peer, never the client-supplied header.
+        assertThat(keyCaptor.getValue()).endsWith("203.0.113.7").doesNotContain("1.2.3.4");
     }
 }

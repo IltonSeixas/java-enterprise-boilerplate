@@ -68,10 +68,10 @@ class PostgresUserRepositoryIntegrationTest {
         userRepository.saveFirstOwner(user);
 
         assertThat(userRepository.hasOwner()).isTrue();
-        assertThat(userRepository.findById(user.getId()))
+        assertThat(userRepository.findById(user.id()))
                 .isPresent()
                 .get()
-                .extracting(User::getRole)
+                .extracting(User::role)
                 .isEqualTo(User.Role.OWNER);
     }
 
@@ -84,7 +84,7 @@ class PostgresUserRepositoryIntegrationTest {
         assertThatThrownBy(() -> userRepository.saveFirstOwner(racingUser))
                 .isInstanceOf(UserAlreadyExistsException.class);
 
-        assertThat(userRepository.findById(racingUser.getId())).isEmpty();
+        assertThat(userRepository.findById(racingUser.id())).isEmpty();
     }
 
     @Test
@@ -98,7 +98,7 @@ class PostgresUserRepositoryIntegrationTest {
 
         assertThat(page.totalElements()).isEqualTo(1);
         assertThat(page.content()).hasSize(1);
-        assertThat(page.content().get(0).getRole()).isEqualTo(User.Role.ADMIN);
+        assertThat(page.content().get(0).role()).isEqualTo(User.Role.ADMIN);
     }
 
     @Test

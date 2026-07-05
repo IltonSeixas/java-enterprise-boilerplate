@@ -20,17 +20,18 @@
 
     <properties>
         <java.version>21</java.version>
-        <commons-compress.version>1.27.1</commons-compress.version>
+        <commons-compress.version>1.28.0</commons-compress.version>
+        <tomcat.version>11.0.23</tomcat.version>
         <jackson.version>2.22.0</jackson.version>
-        <jjwt.version>0.12.6</jjwt.version>
-        <springdoc.version>2.8.9</springdoc.version>
+        <jjwt.version>0.13.0</jjwt.version>
+        <springdoc.version>3.0.3</springdoc.version>
         <grpc.version>1.82.1</grpc.version>
         <grpc-spring-boot.version>3.1.0.RELEASE</grpc-spring-boot.version>
         <protobuf.version>3.25.5</protobuf.version>
         <opentelemetry.version>1.63.0</opentelemetry.version>
         <opentelemetry-semconv.version>1.42.0</opentelemetry-semconv.version>
         <bouncycastle.version>1.84</bouncycastle.version>
-        <testcontainers.version>1.20.6</testcontainers.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
         <archunit.version>1.4.2</archunit.version>
         <resilience4j.version>2.4.0</resilience4j.version>
         <excludedGroups>integration</excludedGroups>
@@ -68,6 +69,23 @@
                 <version>${jackson.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!-- CVE-2026-55276 / CVE-2026-53434 / CVE-2026-53404: force tomcat-embed-* >= 11.0.23;
+                 Spring Boot 4.1.0 BOM pins 11.0.22 which is in the vulnerable range -->
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-core</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-el</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-websocket</artifactId>
+                <version>${tomcat.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

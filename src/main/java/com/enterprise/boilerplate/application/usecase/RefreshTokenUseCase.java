@@ -36,7 +36,7 @@ public class RefreshTokenUseCase {
         var user = userRepository.findById(UserId.of(userId))
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        if (!user.isActive()) {
+        if (!user.active()) {
             tokenService.revokeRefreshToken(request.refreshToken());
             throw new InactiveUserException();
         }

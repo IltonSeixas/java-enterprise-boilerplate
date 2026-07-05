@@ -62,9 +62,9 @@ class ListUsersUseCaseTest {
     void execute_whenCallerIsRegularUser_throwsForbiddenException() {
         var useCase = newUseCase();
         User caller = userWithRole(User.Role.USER);
-        when(userRepository.findById(caller.getId())).thenReturn(Optional.of(caller));
+        when(userRepository.findById(caller.id())).thenReturn(Optional.of(caller));
 
-        assertThatThrownBy(() -> useCase.execute(caller.getId().toString(), request(null, null, null, 0, 20)))
+        assertThatThrownBy(() -> useCase.execute(caller.id().toString(), request(null, null, null, 0, 20)))
                 .isInstanceOf(ForbiddenException.class);
     }
 
@@ -72,9 +72,9 @@ class ListUsersUseCaseTest {
     void execute_withInvalidRoleFilter_throwsInvalidRoleException() {
         var useCase = newUseCase();
         User admin = userWithRole(User.Role.ADMIN);
-        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
+        when(userRepository.findById(admin.id())).thenReturn(Optional.of(admin));
 
-        assertThatThrownBy(() -> useCase.execute(admin.getId().toString(), request("superuser", null, null, 0, 20)))
+        assertThatThrownBy(() -> useCase.execute(admin.id().toString(), request("superuser", null, null, 0, 20)))
                 .isInstanceOf(InvalidRoleException.class);
     }
 
@@ -83,10 +83,10 @@ class ListUsersUseCaseTest {
         var useCase = newUseCase();
         User admin = userWithRole(User.Role.ADMIN);
         User target = userWithRole(User.Role.USER);
-        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
+        when(userRepository.findById(admin.id())).thenReturn(Optional.of(admin));
         when(userRepository.findAll(any(), any())).thenReturn(new UserPage(List.of(target), 1));
 
-        PageResponse<?> response = useCase.execute(admin.getId().toString(),
+        PageResponse<?> response = useCase.execute(admin.id().toString(),
                 new ListUsersRequest("user", true, "ali", 1, 10, "name", "DESC"));
 
         ArgumentCaptor<UserFilter> filterCaptor = ArgumentCaptor.forClass(UserFilter.class);
@@ -109,10 +109,10 @@ class ListUsersUseCaseTest {
     void execute_whenCallerIsOwner_isAllowed() {
         var useCase = newUseCase();
         User owner = userWithRole(User.Role.OWNER);
-        when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+        when(userRepository.findById(owner.id())).thenReturn(Optional.of(owner));
         when(userRepository.findAll(any(), any())).thenReturn(new UserPage(List.of(), 0));
 
-        PageResponse<?> response = useCase.execute(owner.getId().toString(), request(null, null, null, 0, 20));
+        PageResponse<?> response = useCase.execute(owner.id().toString(), request(null, null, null, 0, 20));
 
         assertThat(response.content()).isEmpty();
     }
@@ -121,9 +121,9 @@ class ListUsersUseCaseTest {
     void execute_withInvalidSortBy_throwsIllegalArgumentException() {
         var useCase = newUseCase();
         User admin = userWithRole(User.Role.ADMIN);
-        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
+        when(userRepository.findById(admin.id())).thenReturn(Optional.of(admin));
 
-        assertThatThrownBy(() -> useCase.execute(admin.getId().toString(),
+        assertThatThrownBy(() -> useCase.execute(admin.id().toString(),
                 new ListUsersRequest(null, null, null, 0, 20, "passwordHash", "ASC")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid sortBy");
@@ -133,9 +133,9 @@ class ListUsersUseCaseTest {
     void execute_withInvalidDirection_throwsIllegalArgumentException() {
         var useCase = newUseCase();
         User admin = userWithRole(User.Role.ADMIN);
-        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
+        when(userRepository.findById(admin.id())).thenReturn(Optional.of(admin));
 
-        assertThatThrownBy(() -> useCase.execute(admin.getId().toString(),
+        assertThatThrownBy(() -> useCase.execute(admin.id().toString(),
                 new ListUsersRequest(null, null, null, 0, 20, "name", "UPWARD")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid direction");
