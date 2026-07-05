@@ -42,14 +42,14 @@ class UserJpaEntity {
 
     static UserJpaEntity from(User user) {
         var entity = new UserJpaEntity();
-        entity.id = user.getId().value();
-        entity.email = user.getEmail().value();
-        entity.passwordHash = user.getPasswordHash().value();
-        entity.name = user.getName();
-        entity.role = user.getRole();
-        entity.active = user.isActive();
-        entity.createdAt = user.getCreatedAt();
-        entity.updatedAt = user.getUpdatedAt();
+        entity.id = user.id().value();
+        entity.email = user.email().value();
+        entity.passwordHash = user.passwordHash().value();
+        entity.name = user.name();
+        entity.role = user.role();
+        entity.active = user.active();
+        entity.createdAt = user.createdAt();
+        entity.updatedAt = user.updatedAt();
         return entity;
     }
 

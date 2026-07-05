@@ -51,7 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String userId = claims.subject();
                 var user = userRepository.findById(UserId.of(userId)).orElse(null);
 
-                if (user == null || !user.isActive()) {
+                if (user == null || !user.active()) {
                     SecurityContextHolder.clearContext();
                     return;
                 }
