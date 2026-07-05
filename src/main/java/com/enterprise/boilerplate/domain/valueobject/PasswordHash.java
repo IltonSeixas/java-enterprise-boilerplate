@@ -1,10 +1,12 @@
 package com.enterprise.boilerplate.domain.valueobject;
 
+import com.enterprise.boilerplate.domain.exception.DomainValidationException;
+
 public record PasswordHash(String value) {
 
     public PasswordHash {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("PasswordHash must not be blank");
+            throw new DomainValidationException("PasswordHash must not be blank");
         }
     }
 

@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.domain.audit;
 
+import com.enterprise.boilerplate.domain.exception.DomainValidationException;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,15 +28,15 @@ class AuditEventTest {
     }
 
     @Test
-    void of_withNullType_throwsIllegalArgumentException() {
+    void of_withNullType_throwsDomainValidationException() {
         assertThatThrownBy(() -> AuditEvent.of(null, "actor-1", "detail"))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(DomainValidationException.class);
     }
 
     @Test
-    void of_withBlankActor_throwsIllegalArgumentException() {
+    void of_withBlankActor_throwsDomainValidationException() {
         assertThatThrownBy(() -> AuditEvent.of(AuditEventType.LOGOUT, "  ", "detail"))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(DomainValidationException.class);
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.interfaces.rest;
 
+import com.enterprise.boilerplate.domain.exception.DomainValidationException;
 import com.enterprise.boilerplate.domain.exception.ForbiddenException;
 import com.enterprise.boilerplate.domain.exception.InactiveUserException;
 import com.enterprise.boilerplate.domain.exception.InsufficientPermissionsException;
@@ -105,6 +106,13 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleInsufficientPermissions(InsufficientPermissionsException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
         problem.setType(URI.create("https://errors.enterprise.com/insufficient-permissions"));
+        return problem;
+    }
+
+    @ExceptionHandler(DomainValidationException.class)
+    public ProblemDetail handleDomainValidation(DomainValidationException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setType(URI.create("https://errors.enterprise.com/bad-request"));
         return problem;
     }
 
