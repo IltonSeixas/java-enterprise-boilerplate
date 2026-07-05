@@ -42,20 +42,20 @@ public class LoginUserUseCase {
 
         var user = userOpt.get();
 
-        if (!user.isActive()) {
-            audit.record(AuditEvent.of(AuditEventType.LOGIN_FAILED, user.getId().toString(), "inactive user"));
+        if (!user.active()) {
+            audit.record(AuditEvent.of(AuditEventType.LOGIN_FAILED, user.id().toString(), "inactive user"));
             throw new InvalidPasswordException();
         }
 
-        if (!passwordHasher.verify(request.password(), user.getPasswordHash())) {
-            audit.record(AuditEvent.of(AuditEventType.LOGIN_FAILED, user.getId().toString(), "invalid password"));
+        if (!passwordHasher.verify(request.password(), user.passwordHash())) {
+            audit.record(AuditEvent.of(AuditEventType.LOGIN_FAILED, user.id().toString(), "invalid password"));
             throw new InvalidPasswordException();
         }
 
         String accessToken = tokenService.issueAccessToken(user);
         String refreshToken = tokenService.issueRefreshToken(user);
 
-        audit.record(AuditEvent.of(AuditEventType.LOGIN_SUCCEEDED, user.getId().toString(), null));
+        audit.record(AuditEvent.of(AuditEventType.LOGIN_SUCCEEDED, user.id().toString(), null));
 
         return AuthResponse.of(accessToken, refreshToken, accessTokenExpiryMinutes * 60);
     }

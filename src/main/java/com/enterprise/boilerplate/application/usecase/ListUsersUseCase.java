@@ -28,7 +28,7 @@ public class ListUsersUseCase {
         User caller = userRepository.findById(UserId.of(callerId))
                 .orElseThrow(() -> new UserNotFoundException(callerId));
 
-        if (caller.getRole() != User.Role.ADMIN && caller.getRole() != User.Role.OWNER) {
+        if (caller.role() != User.Role.ADMIN && caller.role() != User.Role.OWNER) {
             throw new ForbiddenException();
         }
 

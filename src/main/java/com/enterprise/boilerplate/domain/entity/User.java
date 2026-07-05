@@ -82,12 +82,12 @@ public final class User {
         this.updatedAt = Instant.now();
     }
 
-    public UserId getId() { return id; }
-    public Email getEmail() { return email; }
-    public PasswordHash getPasswordHash() { return passwordHash; }
-    public String getName() { return name; }
-    public Role getRole() { return role; }
-    public boolean isActive() { return active; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public UserId id() { return id; }
+    public Email email() { return email; }
+    public PasswordHash passwordHash() { return passwordHash; }
+    public String name() { return name; }
+    public Role role() { return role; }
+    public boolean active() { return active; }
+    public Instant createdAt() { return createdAt; }
+    public Instant updatedAt() { return updatedAt; }
 }

@@ -33,10 +33,10 @@ class InMemoryUserRepositoryTest {
         User user = User.create(Email.of("a@example.com"), HASH, "Alice", User.Role.USER);
         repository.save(user);
 
-        Optional<User> found = repository.findById(user.getId());
+        Optional<User> found = repository.findById(user.id());
 
         assertThat(found).isPresent();
-        assertThat(found.get().getId()).isEqualTo(user.getId());
+        assertThat(found.get().id()).isEqualTo(user.id());
     }
 
     @Test
@@ -116,7 +116,7 @@ class InMemoryUserRepositoryTest {
 
         repository.save(user);
 
-        assertThat(repository.findById(user.getId()).map(User::getName)).contains("After");
+        assertThat(repository.findById(user.id()).map(User::name)).contains("After");
     }
 
     @Test
@@ -127,7 +127,7 @@ class InMemoryUserRepositoryTest {
         var page = repository.findAll(new UserFilter(User.Role.ADMIN, null, null), PageCriteria.of(0, 10));
 
         assertThat(page.content()).hasSize(1);
-        assertThat(page.content().get(0).getRole()).isEqualTo(User.Role.ADMIN);
+        assertThat(page.content().get(0).role()).isEqualTo(User.Role.ADMIN);
         assertThat(page.totalElements()).isEqualTo(1);
     }
 
@@ -139,7 +139,7 @@ class InMemoryUserRepositoryTest {
         var page = repository.findAll(new UserFilter(null, null, "ALICE"), PageCriteria.of(0, 10));
 
         assertThat(page.content()).hasSize(1);
-        assertThat(page.content().get(0).getName()).isEqualTo("Alice Wonderland");
+        assertThat(page.content().get(0).name()).isEqualTo("Alice Wonderland");
     }
 
     @Test
@@ -153,7 +153,7 @@ class InMemoryUserRepositoryTest {
         var page = repository.findAll(new UserFilter(null, false, null), PageCriteria.of(0, 10));
 
         assertThat(page.content()).hasSize(1);
-        assertThat(page.content().get(0).getName()).isEqualTo("Inactive");
+        assertThat(page.content().get(0).name()).isEqualTo("Inactive");
     }
 
     @Test

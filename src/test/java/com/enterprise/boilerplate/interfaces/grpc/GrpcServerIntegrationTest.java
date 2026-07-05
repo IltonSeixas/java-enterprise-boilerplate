@@ -183,14 +183,14 @@ class GrpcServerIntegrationTest {
         @Override
         public String issueAccessToken(User user) {
             String token = "access-" + UUID.randomUUID();
-            accessTokens.put(token, user.getId().toString());
+            accessTokens.put(token, user.id().toString());
             return token;
         }
 
         @Override
         public String issueRefreshToken(User user) {
             String token = "refresh-" + UUID.randomUUID();
-            refreshTokens.put(token, user.getId().toString());
+            refreshTokens.put(token, user.id().toString());
             return token;
         }
 

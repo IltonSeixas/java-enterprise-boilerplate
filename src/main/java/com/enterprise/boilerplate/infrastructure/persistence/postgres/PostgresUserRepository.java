@@ -83,12 +83,12 @@ class PostgresUserRepository implements UserRepository {
                         "INSERT INTO users (id, email, password_hash, name, role, active, created_at, updated_at) " +
                         "VALUES (:id, :email, :passwordHash, :name, 'OWNER', true, :createdAt, :updatedAt) " +
                         "ON CONFLICT ((role)) WHERE role = 'OWNER' DO NOTHING")
-                .setParameter("id", user.getId().value())
-                .setParameter("email", user.getEmail().value())
-                .setParameter("passwordHash", user.getPasswordHash().value())
-                .setParameter("name", user.getName())
-                .setParameter("createdAt", user.getCreatedAt())
-                .setParameter("updatedAt", user.getUpdatedAt())
+                .setParameter("id", user.id().value())
+                .setParameter("email", user.email().value())
+                .setParameter("passwordHash", user.passwordHash().value())
+                .setParameter("name", user.name())
+                .setParameter("createdAt", user.createdAt())
+                .setParameter("updatedAt", user.updatedAt())
                 .executeUpdate();
 
         if (inserted == 0) {

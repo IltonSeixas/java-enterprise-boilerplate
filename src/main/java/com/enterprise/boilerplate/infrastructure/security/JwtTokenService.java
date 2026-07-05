@@ -52,8 +52,8 @@ public class JwtTokenService implements TokenServicePort {
     public String issueAccessToken(User user) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
-                .subject(user.getId().toString())
-                .claim(ROLE_CLAIM, user.getRole().name())
+                .subject(user.id().toString())
+                .claim(ROLE_CLAIM, user.role().name())
                 .issuedAt(new Date(now))
                 .expiration(new Date(now + accessTokenTtlSeconds * 1000))
                 .signWith(signingKey())
@@ -63,7 +63,7 @@ public class JwtTokenService implements TokenServicePort {
     @Override
     public String issueRefreshToken(User user) {
         String token = UUID.randomUUID().toString();
-        String userId = user.getId().toString();
+        String userId = user.id().toString();
 
         tokenStore.set(REFRESH_KEY_PREFIX + token, userId, refreshTokenTtlSeconds);
         tokenStore.set(USER_REFRESH_PREFIX + userId + ":" + token, token, refreshTokenTtlSeconds);

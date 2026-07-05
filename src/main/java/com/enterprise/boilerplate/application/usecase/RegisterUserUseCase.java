@@ -41,7 +41,7 @@ public class RegisterUserUseCase {
             userRepository.save(user);
         }
 
-        audit.record(AuditEvent.of(AuditEventType.USER_REGISTERED, user.getId().toString(), "role=" + role));
+        audit.record(AuditEvent.of(AuditEventType.USER_REGISTERED, user.id().toString(), "role=" + role));
 
         return UserResponse.from(user);
     }

@@ -31,7 +31,7 @@ public class ChangeUserRoleUseCase {
         User target = userRepository.findById(targetId)
                 .orElseThrow(() -> new UserNotFoundException(targetUserId));
 
-        User.Role previousRole = target.getRole();
+        User.Role previousRole = target.role();
         User.Role newRole = parseRole(request.role());
 
         target.changeRole(newRole, caller);

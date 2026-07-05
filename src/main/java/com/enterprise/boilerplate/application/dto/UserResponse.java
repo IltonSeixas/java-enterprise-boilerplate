@@ -14,12 +14,12 @@ public record UserResponse(
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(
-                user.getId().toString(),
-                user.getEmail().value(),
-                user.getName(),
-                user.getRole().name(),
-                user.isActive(),
-                user.getCreatedAt()
+                user.id().toString(),
+                user.email().value(),
+                user.name(),
+                user.role().name(),
+                user.active(),
+                user.createdAt()
         );
     }
 }
