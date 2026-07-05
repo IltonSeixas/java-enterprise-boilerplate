@@ -53,7 +53,7 @@ class JwtTokenServiceTest {
         String token = service.issueAccessToken(user);
 
         assertThat(service.validateAccessToken(token))
-                .contains(user.getId().toString());
+                .contains(user.id().toString());
     }
 
     @Test

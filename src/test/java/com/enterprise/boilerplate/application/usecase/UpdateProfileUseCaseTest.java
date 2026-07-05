@@ -58,9 +58,9 @@ class UpdateProfileUseCaseTest {
     void execute_withValidName_updatesAndPersistsUserAndRecordsAuditEvent() {
         var useCase = newUseCase();
         User user = existingUser();
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(userRepository.findById(user.id())).thenReturn(Optional.of(user));
 
-        UserResponse response = useCase.execute(user.getId().toString(), new UpdateProfileRequest("New Name"));
+        UserResponse response = useCase.execute(user.id().toString(), new UpdateProfileRequest("New Name"));
 
         assertThat(response.name()).isEqualTo("New Name");
         verify(userRepository).save(user);
@@ -68,6 +68,6 @@ class UpdateProfileUseCaseTest {
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(audit).record(captor.capture());
         assertThat(captor.getValue().type()).isEqualTo(AuditEventType.PROFILE_UPDATED);
-        assertThat(captor.getValue().actorUserId()).isEqualTo(user.getId().toString());
+        assertThat(captor.getValue().actorUserId()).isEqualTo(user.id().toString());
     }
 }

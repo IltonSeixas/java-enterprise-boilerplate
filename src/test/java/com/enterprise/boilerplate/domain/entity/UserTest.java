@@ -20,13 +20,13 @@ class UserTest {
     void create_withValidData_setsActiveAndTimestamps() {
         User user = User.create(EMAIL, HASH, "Alice", User.Role.USER);
 
-        assertThat(user.getId()).isNotNull();
-        assertThat(user.getEmail()).isEqualTo(EMAIL);
-        assertThat(user.getName()).isEqualTo("Alice");
-        assertThat(user.getRole()).isEqualTo(User.Role.USER);
-        assertThat(user.isActive()).isTrue();
-        assertThat(user.getCreatedAt()).isNotNull();
-        assertThat(user.getUpdatedAt()).isNotNull();
+        assertThat(user.id()).isNotNull();
+        assertThat(user.email()).isEqualTo(EMAIL);
+        assertThat(user.name()).isEqualTo("Alice");
+        assertThat(user.role()).isEqualTo(User.Role.USER);
+        assertThat(user.active()).isTrue();
+        assertThat(user.createdAt()).isNotNull();
+        assertThat(user.updatedAt()).isNotNull();
     }
 
     @Test
@@ -39,12 +39,12 @@ class UserTest {
     @Test
     void updateProfile_withValidName_updatesName() {
         User user = User.create(EMAIL, HASH, "Alice", User.Role.USER);
-        Instant before = user.getUpdatedAt();
+        Instant before = user.updatedAt();
 
         user.updateProfile("Bob");
 
-        assertThat(user.getName()).isEqualTo("Bob");
-        assertThat(user.getUpdatedAt()).isAfterOrEqualTo(before);
+        assertThat(user.name()).isEqualTo("Bob");
+        assertThat(user.updatedAt()).isAfterOrEqualTo(before);
     }
 
     @Test
@@ -59,14 +59,14 @@ class UserTest {
     @Test
     void changePassword_updatesHashAndUpdatedAt() throws InterruptedException {
         User user = User.create(EMAIL, HASH, "Alice", User.Role.USER);
-        Instant before = user.getUpdatedAt();
+        Instant before = user.updatedAt();
         Thread.sleep(1);
 
         PasswordHash newHash = PasswordHash.of("$argon2id$v=19$m=65536,t=3,p=4$c2FsdA$bmV3SGFzaA");
         user.changePassword(newHash);
 
-        assertThat(user.getPasswordHash()).isEqualTo(newHash);
-        assertThat(user.getUpdatedAt()).isAfter(before);
+        assertThat(user.passwordHash()).isEqualTo(newHash);
+        assertThat(user.updatedAt()).isAfter(before);
     }
 
     @Test
@@ -96,13 +96,13 @@ class UserTest {
     void changeRole_byOwnerTargetingAnotherUser_updatesRoleAndTimestamp() throws InterruptedException {
         User owner = User.create(Email.of("owner@example.com"), HASH, "Owner", User.Role.OWNER);
         User target = User.create(Email.of("target@example.com"), HASH, "Target", User.Role.USER);
-        Instant before = target.getUpdatedAt();
+        Instant before = target.updatedAt();
         Thread.sleep(1);
 
         target.changeRole(User.Role.ADMIN, owner);
 
-        assertThat(target.getRole()).isEqualTo(User.Role.ADMIN);
-        assertThat(target.getUpdatedAt()).isAfter(before);
+        assertThat(target.role()).isEqualTo(User.Role.ADMIN);
+        assertThat(target.updatedAt()).isAfter(before);
     }
 
     @Test

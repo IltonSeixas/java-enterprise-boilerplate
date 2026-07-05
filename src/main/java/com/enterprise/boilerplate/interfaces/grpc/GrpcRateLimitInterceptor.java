@@ -2,6 +2,7 @@ package com.enterprise.boilerplate.interfaces.grpc;
 
 import com.enterprise.boilerplate.application.port.out.RateLimitPort;
 import com.enterprise.boilerplate.config.properties.RateLimitProperties;
+import io.grpc.Grpc;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
@@ -10,6 +11,8 @@ import io.grpc.Status;
 import net.devh.boot.grpc.server.interceptor.GrpcGlobalServerInterceptor;
 import org.springframework.core.annotation.Order;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,9 +28,11 @@ import java.util.concurrent.atomic.AtomicLong;
  * methods are excluded: they already require a valid access token, so brute-force is not
  * a meaningful threat there.
  *
- * The client IP is read from the {@code x-forwarded-for} metadata key when the
- * {@code rateLimiting.trustForwardedHeaders} property is true, falling back to the
- * remote address from the gRPC transport attributes.
+ * The client IP is read from the {@code x-forwarded-for} metadata key only when
+ * {@code rateLimiting.trustForwardedHeaders} is true (i.e. traffic arrives through a
+ * trusted reverse proxy that appends its own hop). Otherwise the real peer address is
+ * read from the gRPC transport attributes ({@link Grpc#TRANSPORT_ATTR_REMOTE_ADDR}),
+ * which the client cannot spoof — unlike any metadata header.
  */
 @GrpcGlobalServerInterceptor
 @Order(-1)
@@ -42,8 +47,6 @@ public class GrpcRateLimitInterceptor implements ServerInterceptor {
 
     private static final Metadata.Key<String> FORWARDED_FOR_KEY =
             Metadata.Key.of("x-forwarded-for", Metadata.ASCII_STRING_MARSHALLER);
-    private static final Metadata.Key<String> REMOTE_ADDR_KEY =
-            Metadata.Key.of("x-remote-addr", Metadata.ASCII_STRING_MARSHALLER);
 
     // Full gRPC method names that are rate-limited (public auth surface).
     private static final Set<String> RATE_LIMITED_METHODS = Set.of(
@@ -72,7 +75,7 @@ public class GrpcRateLimitInterceptor implements ServerInterceptor {
             return next.startCall(call, headers);
         }
 
-        String ip = resolveClientIp(headers);
+        String ip = resolveClientIp(call, headers);
         if (isRateLimited(ip)) {
             call.close(Status.RESOURCE_EXHAUSTED.withDescription("rate limit exceeded"), new Metadata());
             return new ServerCall.Listener<>() {};
@@ -103,7 +106,7 @@ public class GrpcRateLimitInterceptor implements ServerInterceptor {
         return window.count().incrementAndGet();
     }
 
-    private String resolveClientIp(Metadata headers) {
+    private String resolveClientIp(ServerCall<?, ?> call, Metadata headers) {
         if (trustForwardedHeaders) {
             String forwarded = headers.get(FORWARDED_FOR_KEY);
             if (forwarded != null && !forwarded.isBlank()) {
@@ -111,8 +114,11 @@ public class GrpcRateLimitInterceptor implements ServerInterceptor {
                 return hops[hops.length - 1].trim();
             }
         }
-        String remoteAddr = headers.get(REMOTE_ADDR_KEY);
-        return remoteAddr != null ? remoteAddr : "unknown";
+        SocketAddress remoteAddr = call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);
+        if (remoteAddr instanceof InetSocketAddress inetAddr) {
+            return inetAddr.getAddress().getHostAddress();
+        }
+        return remoteAddr != null ? remoteAddr.toString() : "unknown";
     }
 
     private void sweepStaleEntries(long now) {

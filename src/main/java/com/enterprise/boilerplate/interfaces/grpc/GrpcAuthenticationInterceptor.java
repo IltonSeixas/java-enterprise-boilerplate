@@ -71,12 +71,12 @@ public class GrpcAuthenticationInterceptor implements ServerInterceptor {
         }
 
         var user = userRepository.findById(UserId.of(userId)).orElse(null);
-        if (user == null || !user.isActive()) {
+        if (user == null || !user.active()) {
             call.close(Status.UNAUTHENTICATED.withDescription("invalid or expired token"), new Metadata());
             return new ServerCall.Listener<>() {};
         }
 
-        var caller = new GrpcAuthenticatedCaller(userId, user.getRole().name());
+        var caller = new GrpcAuthenticatedCaller(userId, user.role().name());
         Context context = Context.current().withValue(CALLER_CONTEXT_KEY, caller);
         return Contexts.interceptCall(context, call, headers, next);
     }

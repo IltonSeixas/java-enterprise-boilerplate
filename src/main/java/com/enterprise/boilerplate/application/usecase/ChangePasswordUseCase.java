@@ -33,7 +33,7 @@ public class ChangePasswordUseCase {
         var user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        if (!passwordHasher.verify(request.currentPassword(), user.getPasswordHash())) {
+        if (!passwordHasher.verify(request.currentPassword(), user.passwordHash())) {
             throw new InvalidPasswordException();
         }
 

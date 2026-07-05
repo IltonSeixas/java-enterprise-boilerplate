@@ -26,7 +26,7 @@ public class GetUserUseCase {
                 .orElseThrow(() -> new UserNotFoundException(targetUserId));
 
         boolean isSelf = callId.equals(targetId);
-        boolean isPrivileged = caller.getRole() == User.Role.ADMIN || caller.getRole() == User.Role.OWNER;
+        boolean isPrivileged = caller.role() == User.Role.ADMIN || caller.role() == User.Role.OWNER;
 
         if (!isSelf && !isPrivileged) {
             throw new ForbiddenException();

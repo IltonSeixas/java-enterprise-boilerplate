@@ -67,6 +67,7 @@ src/test/java/com/enterprise/boilerplate/
 │   │   ├── InMemoryUserRepositoryTest.java    # in-memory adapter (including email uniqueness guard)
 │   │   └── postgres/
 │   │       ├── FlywayConcurrentMigrationIntegrationTest.java  # @Tag("integration") — 8 concurrent replicas
+│   │       ├── PostgresUserRepositoryTest.java                # Mockito unit tests — findById/Email, save, saveFirstOwner conflict, sort direction
 │   │       ├── PostgresUserRepositoryIntegrationTest.java     # @Tag("integration") — Testcontainers PostgreSQL
 │   │       └── UserSpecificationsTest.java    # role/active/nameContains predicates, % and _ escaping
 │   └── security/
@@ -246,13 +247,13 @@ Never write implementation code without a failing test first.
 # Report written to target/site/jacoco/index.html
 ```
 
-Current coverage (186 unit tests, excluding `@Tag("integration")`):
+Current coverage (196 unit tests, excluding `@Tag("integration")`):
 
 | Metric | Coverage |
 |---|---|
-| Line | 78% |
-| Branch | 77% |
-| Method | 76% |
+| Line | 82% |
+| Branch | 76% |
+| Method | 80% |
 
 | Layer | Expectation |
 |---|---|

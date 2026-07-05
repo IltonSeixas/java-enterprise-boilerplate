@@ -51,10 +51,10 @@ class GetUserUseCaseTest {
         var useCase = newUseCase();
         User caller = userWithRole(User.Role.USER);
         UserId targetId = UserId.generate();
-        when(userRepository.findById(caller.getId())).thenReturn(Optional.of(caller));
+        when(userRepository.findById(caller.id())).thenReturn(Optional.of(caller));
         when(userRepository.findById(targetId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute(targetId.toString(), caller.getId().toString()))
+        assertThatThrownBy(() -> useCase.execute(targetId.toString(), caller.id().toString()))
                 .isInstanceOf(UserNotFoundException.class);
     }
 
@@ -63,10 +63,10 @@ class GetUserUseCaseTest {
         var useCase = newUseCase();
         User caller = userWithRole(User.Role.USER);
         User target = userWithRole(User.Role.USER);
-        when(userRepository.findById(caller.getId())).thenReturn(Optional.of(caller));
-        when(userRepository.findById(target.getId())).thenReturn(Optional.of(target));
+        when(userRepository.findById(caller.id())).thenReturn(Optional.of(caller));
+        when(userRepository.findById(target.id())).thenReturn(Optional.of(target));
 
-        assertThatThrownBy(() -> useCase.execute(target.getId().toString(), caller.getId().toString()))
+        assertThatThrownBy(() -> useCase.execute(target.id().toString(), caller.id().toString()))
                 .isInstanceOf(ForbiddenException.class);
     }
 
@@ -74,11 +74,11 @@ class GetUserUseCaseTest {
     void execute_whenMemberRequestsSelf_returnsOwnProfile() {
         var useCase = newUseCase();
         User caller = userWithRole(User.Role.USER);
-        when(userRepository.findById(caller.getId())).thenReturn(Optional.of(caller));
+        when(userRepository.findById(caller.id())).thenReturn(Optional.of(caller));
 
-        UserResponse response = useCase.execute(caller.getId().toString(), caller.getId().toString());
+        UserResponse response = useCase.execute(caller.id().toString(), caller.id().toString());
 
-        assertThat(response.id()).isEqualTo(caller.getId().toString());
+        assertThat(response.id()).isEqualTo(caller.id().toString());
     }
 
     @Test
@@ -86,11 +86,11 @@ class GetUserUseCaseTest {
         var useCase = newUseCase();
         User admin = userWithRole(User.Role.ADMIN);
         User target = userWithRole(User.Role.USER);
-        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
-        when(userRepository.findById(target.getId())).thenReturn(Optional.of(target));
+        when(userRepository.findById(admin.id())).thenReturn(Optional.of(admin));
+        when(userRepository.findById(target.id())).thenReturn(Optional.of(target));
 
-        UserResponse response = useCase.execute(target.getId().toString(), admin.getId().toString());
+        UserResponse response = useCase.execute(target.id().toString(), admin.id().toString());
 
-        assertThat(response.id()).isEqualTo(target.getId().toString());
+        assertThat(response.id()).isEqualTo(target.id().toString());
     }
 }

@@ -62,10 +62,10 @@ class ChangeUserRoleUseCaseTest {
         var useCase = newUseCase();
         User owner = userWithRole(User.Role.OWNER);
         UserId targetId = UserId.generate();
-        when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+        when(userRepository.findById(owner.id())).thenReturn(Optional.of(owner));
         when(userRepository.findById(targetId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute(owner.getId().toString(), targetId.toString(),
+        assertThatThrownBy(() -> useCase.execute(owner.id().toString(), targetId.toString(),
                 new ChangeRoleRequest("admin")))
                 .isInstanceOf(UserNotFoundException.class);
     }
@@ -75,10 +75,10 @@ class ChangeUserRoleUseCaseTest {
         var useCase = newUseCase();
         User admin = userWithRole(User.Role.ADMIN);
         User target = userWithRole(User.Role.USER);
-        when(userRepository.findById(admin.getId())).thenReturn(Optional.of(admin));
-        when(userRepository.findById(target.getId())).thenReturn(Optional.of(target));
+        when(userRepository.findById(admin.id())).thenReturn(Optional.of(admin));
+        when(userRepository.findById(target.id())).thenReturn(Optional.of(target));
 
-        assertThatThrownBy(() -> useCase.execute(admin.getId().toString(), target.getId().toString(),
+        assertThatThrownBy(() -> useCase.execute(admin.id().toString(), target.id().toString(),
                 new ChangeRoleRequest("admin")))
                 .isInstanceOf(InsufficientPermissionsException.class);
     }
@@ -87,9 +87,9 @@ class ChangeUserRoleUseCaseTest {
     void execute_whenOwnerChangesOwnRole_throwsInsufficientPermissionsException() {
         var useCase = newUseCase();
         User owner = userWithRole(User.Role.OWNER);
-        when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+        when(userRepository.findById(owner.id())).thenReturn(Optional.of(owner));
 
-        assertThatThrownBy(() -> useCase.execute(owner.getId().toString(), owner.getId().toString(),
+        assertThatThrownBy(() -> useCase.execute(owner.id().toString(), owner.id().toString(),
                 new ChangeRoleRequest("admin")))
                 .isInstanceOf(InsufficientPermissionsException.class);
     }
@@ -99,10 +99,10 @@ class ChangeUserRoleUseCaseTest {
         var useCase = newUseCase();
         User owner = userWithRole(User.Role.OWNER);
         User target = userWithRole(User.Role.USER);
-        when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
-        when(userRepository.findById(target.getId())).thenReturn(Optional.of(target));
+        when(userRepository.findById(owner.id())).thenReturn(Optional.of(owner));
+        when(userRepository.findById(target.id())).thenReturn(Optional.of(target));
 
-        assertThatThrownBy(() -> useCase.execute(owner.getId().toString(), target.getId().toString(),
+        assertThatThrownBy(() -> useCase.execute(owner.id().toString(), target.id().toString(),
                 new ChangeRoleRequest("superuser")))
                 .isInstanceOf(InvalidRoleException.class);
     }
@@ -112,20 +112,20 @@ class ChangeUserRoleUseCaseTest {
         var useCase = newUseCase();
         User owner = userWithRole(User.Role.OWNER);
         User target = userWithRole(User.Role.USER);
-        when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
-        when(userRepository.findById(target.getId())).thenReturn(Optional.of(target));
+        when(userRepository.findById(owner.id())).thenReturn(Optional.of(owner));
+        when(userRepository.findById(target.id())).thenReturn(Optional.of(target));
 
-        UserResponse response = useCase.execute(owner.getId().toString(), target.getId().toString(),
+        UserResponse response = useCase.execute(owner.id().toString(), target.id().toString(),
                 new ChangeRoleRequest("admin"));
 
         assertThat(response.role()).isEqualTo("ADMIN");
-        assertThat(target.getRole()).isEqualTo(User.Role.ADMIN);
+        assertThat(target.role()).isEqualTo(User.Role.ADMIN);
         verify(userRepository).save(target);
 
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(audit).record(captor.capture());
         assertThat(captor.getValue().type()).isEqualTo(AuditEventType.ROLE_CHANGED);
-        assertThat(captor.getValue().actorUserId()).isEqualTo(owner.getId().toString());
-        assertThat(captor.getValue().targetUserId()).isEqualTo(target.getId().toString());
+        assertThat(captor.getValue().actorUserId()).isEqualTo(owner.id().toString());
+        assertThat(captor.getValue().targetUserId()).isEqualTo(target.id().toString());
     }
 }
