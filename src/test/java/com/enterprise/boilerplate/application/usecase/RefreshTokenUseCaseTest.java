@@ -115,4 +115,23 @@ class RefreshTokenUseCaseTest {
         assertThat(captor.getValue().type()).isEqualTo(AuditEventType.TOKEN_REFRESHED);
         assertThat(captor.getValue().actorUserId()).isEqualTo(userId);
     }
+
+    @Test
+    void execute_withReusedToken_revokesAllTokensAndRecordsAuditEventAndThrowsInvalidTokenException() {
+        var useCase = newUseCase();
+        String userId = UserId.generate().toString();
+        when(tokenService.checkReuse(REFRESH_TOKEN)).thenReturn(Optional.of(userId));
+
+        assertThatThrownBy(() -> useCase.execute(new RefreshTokenRequest(REFRESH_TOKEN)))
+                .isInstanceOf(InvalidTokenException.class);
+
+        verify(tokenService).revokeAllRefreshTokens(userId);
+        verify(tokenService, never()).resolveUserIdFromRefreshToken(any());
+        verify(userRepository, never()).findById(any());
+
+        ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
+        verify(audit).record(captor.capture());
+        assertThat(captor.getValue().type()).isEqualTo(AuditEventType.REFRESH_TOKEN_REUSE_DETECTED);
+        assertThat(captor.getValue().actorUserId()).isEqualTo(userId);
+    }
 }
