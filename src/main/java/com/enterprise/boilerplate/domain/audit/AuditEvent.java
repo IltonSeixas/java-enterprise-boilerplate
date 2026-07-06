@@ -1,5 +1,7 @@
 package com.enterprise.boilerplate.domain.audit;
 
+import com.enterprise.boilerplate.domain.exception.DomainValidationException;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,10 +15,10 @@ public record AuditEvent(
 
     public AuditEvent {
         if (type == null) {
-            throw new IllegalArgumentException("AuditEvent type must not be null");
+            throw new DomainValidationException("AuditEvent type must not be null");
         }
         if (actorUserId == null || actorUserId.isBlank()) {
-            throw new IllegalArgumentException("AuditEvent actorUserId must not be blank");
+            throw new DomainValidationException("AuditEvent actorUserId must not be blank");
         }
     }
 

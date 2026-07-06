@@ -12,7 +12,7 @@ import java.util.List;
 @Component
 public class RedisRateLimitStore implements RateLimitPort {
 
-    // Atomic sliding-window counter using INCR + EXPIRE.
+    // Atomic fixed-window counter using INCR + EXPIRE.
     // If the key does not exist, INCR creates it at 1; the EXPIRE is set only on
     // the first call within the window so subsequent increments reuse the same
     // window boundary. This gives a fixed-window semantic per replica-shared key.

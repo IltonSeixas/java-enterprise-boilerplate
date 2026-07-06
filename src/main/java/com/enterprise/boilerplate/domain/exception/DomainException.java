@@ -11,7 +11,8 @@ public sealed class DomainException extends RuntimeException
                 InactiveUserException,
                 ForbiddenException,
                 InsufficientPermissionsException,
-                InvalidRoleException {
+                InvalidRoleException,
+                DomainValidationException {
 
     protected DomainException(String message) {
         super(message);
