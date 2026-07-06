@@ -251,7 +251,7 @@ All configuration via `application.yml` and environment variable overrides (Spri
 | `DB_POOL_CONNECT_TIMEOUT_MS` | `30000` | HikariCP connection acquisition timeout (ms) — only read on the `postgres` profile |
 | `DB_POOL_IDLE_TIMEOUT_MS` | `600000` | HikariCP idle connection timeout (ms) — only read on the `postgres` profile |
 | `DB_POOL_MAX_LIFETIME_MS` | `1800000` | HikariCP maximum connection lifetime (ms) — only read on the `postgres` profile |
-| `SPRING_DATA_REDIS_URL` | `redis://localhost:6379` | Redis connection URL |
+| `SPRING_DATA_REDIS_URL` | `redis://localhost:6379` | Redis connection URL — embed credentials for authenticated deployments (`redis://:password@host:6379`) and use `rediss://` for TLS in transit; `docker-compose.yml` requires `REDIS_PASSWORD` and wires it in automatically |
 | `REDIS_CONNECT_TIMEOUT_MS` | `2000` | Redis (Lettuce) connection timeout (ms) |
 | `REDIS_COMMAND_TIMEOUT_MS` | `2000` | Redis (Lettuce) command timeout (ms) |
 | `JWT_PRIVATE_KEY_PATH` | `jwt_private.pem` | Path to the Ed25519 PEM private key used to sign access tokens |
