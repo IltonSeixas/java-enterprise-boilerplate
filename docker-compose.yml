@@ -9,7 +9,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/boilerplate
       SPRING_DATASOURCE_USERNAME: boilerplate
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      SPRING_DATA_REDIS_URL: redis://redis:6379
+      SPRING_DATA_REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379
       JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private.pem
       JWT_PUBLIC_KEY_PATH: /run/secrets/jwt_public.pem
       LOGGING_LEVEL_ROOT: INFO
@@ -43,12 +43,13 @@ services:
 
   redis:
     image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}", "--no-auth-warning", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
