@@ -12,6 +12,8 @@ import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
 
+import java.util.Optional;
+
 public class RefreshTokenUseCase {
 
     private final UserRepository userRepository;
@@ -30,6 +32,14 @@ public class RefreshTokenUseCase {
     }
 
     public AuthResponse execute(RefreshTokenRequest request) {
+        Optional<String> reusedByUserId = tokenService.checkReuse(request.refreshToken());
+        if (reusedByUserId.isPresent()) {
+            String userId = reusedByUserId.get();
+            tokenService.revokeAllRefreshTokens(userId);
+            audit.record(AuditEvent.of(AuditEventType.REFRESH_TOKEN_REUSE_DETECTED, userId, null));
+            throw new InvalidTokenException();
+        }
+
         String userId = tokenService.resolveUserIdFromRefreshToken(request.refreshToken())
                 .orElseThrow(InvalidTokenException::new);
 

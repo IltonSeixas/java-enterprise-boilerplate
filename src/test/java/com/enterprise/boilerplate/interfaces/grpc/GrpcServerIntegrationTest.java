@@ -179,6 +179,7 @@ class GrpcServerIntegrationTest {
     private static final class FakeTokenService implements TokenServicePort {
         private final Map<String, String> accessTokens = new ConcurrentHashMap<>();
         private final Map<String, String> refreshTokens = new ConcurrentHashMap<>();
+        private final Map<String, String> usedRefreshTokens = new ConcurrentHashMap<>();
 
         @Override
         public String issueAccessToken(User user) {
@@ -205,8 +206,16 @@ class GrpcServerIntegrationTest {
         }
 
         @Override
+        public Optional<String> checkReuse(String refreshToken) {
+            return Optional.ofNullable(usedRefreshTokens.get(refreshToken));
+        }
+
+        @Override
         public void revokeRefreshToken(String refreshToken) {
-            refreshTokens.remove(refreshToken);
+            String userId = refreshTokens.remove(refreshToken);
+            if (userId != null) {
+                usedRefreshTokens.put(refreshToken, userId);
+            }
         }
 
         @Override

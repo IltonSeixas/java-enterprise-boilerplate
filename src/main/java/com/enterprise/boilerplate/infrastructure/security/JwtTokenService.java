@@ -24,6 +24,13 @@ public class JwtTokenService implements TokenServicePort {
     private static final String ROLE_CLAIM = "role";
     private static final String REFRESH_KEY_PREFIX = "refresh:";
     private static final String USER_REFRESH_PREFIX = "user-refresh:";
+    private static final String USED_REFRESH_PREFIX = "used-refresh:";
+
+    // How long a rotated-out refresh token is remembered as "already used" so a
+    // replay of it can be detected as a reuse/theft signal. Shorter than the
+    // refresh token's own TTL — this only needs to outlast realistic client retry
+    // windows (network hiccups, double-submits), not the full session lifetime.
+    private static final long REUSE_TOMBSTONE_TTL_SECONDS = 300;
 
     private final Path privateKeyPath;
     private final Path publicKeyPath;
@@ -95,9 +102,15 @@ public class JwtTokenService implements TokenServicePort {
     }
 
     @Override
+    public Optional<String> checkReuse(String refreshToken) {
+        return tokenStore.get(USED_REFRESH_PREFIX + refreshToken);
+    }
+
+    @Override
     public void revokeRefreshToken(String refreshToken) {
         tokenStore.get(REFRESH_KEY_PREFIX + refreshToken).ifPresent(userId -> {
             tokenStore.delete(USER_REFRESH_PREFIX + userId + ":" + refreshToken);
+            tokenStore.set(USED_REFRESH_PREFIX + refreshToken, userId, REUSE_TOMBSTONE_TTL_SECONDS);
         });
         tokenStore.delete(REFRESH_KEY_PREFIX + refreshToken);
     }
