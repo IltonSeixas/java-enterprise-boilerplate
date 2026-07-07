@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.interfaces.grpc;
 
+import com.enterprise.boilerplate.application.dto.RefreshTokenRedemption;
 import com.enterprise.boilerplate.application.port.out.AuditPort;
 import com.enterprise.boilerplate.application.port.out.PasswordHasherPort;
 import com.enterprise.boilerplate.application.port.out.TokenServicePort;
@@ -206,8 +207,17 @@ class GrpcServerIntegrationTest {
         }
 
         @Override
-        public Optional<String> checkReuse(String refreshToken) {
-            return Optional.ofNullable(usedRefreshTokens.get(refreshToken));
+        public synchronized RefreshTokenRedemption redeemRefreshToken(String refreshToken) {
+            String tombstoneUserId = usedRefreshTokens.get(refreshToken);
+            if (tombstoneUserId != null) {
+                return new RefreshTokenRedemption.Reused(tombstoneUserId);
+            }
+            String userId = refreshTokens.remove(refreshToken);
+            if (userId == null) {
+                return new RefreshTokenRedemption.Invalid();
+            }
+            usedRefreshTokens.put(refreshToken, userId);
+            return new RefreshTokenRedemption.Redeemed(userId);
         }
 
         @Override
