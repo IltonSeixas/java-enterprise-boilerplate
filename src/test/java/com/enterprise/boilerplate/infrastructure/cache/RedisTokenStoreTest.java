@@ -2,21 +2,31 @@ package com.enterprise.boilerplate.infrastructure.cache;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisKeyCommands;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -114,5 +124,77 @@ class RedisTokenStoreTest {
                 });
 
         store.redeemRefreshToken("used-refresh:tok", "refresh:tok", 300L);
+    }
+
+    @Test
+    void deleteByPattern_invokesCallbackForEachScannedKey() {
+        RedisConnection connection = mock(RedisConnection.class);
+        RedisKeyCommands keyCommands = mock(RedisKeyCommands.class);
+        @SuppressWarnings("unchecked")
+        Cursor<byte[]> cursor = mock(Cursor.class);
+
+        when(redisTemplate.executeWithStickyConnection(any())).thenAnswer(invocation -> {
+            RedisCallback<?> callback = invocation.getArgument(0);
+            return callback.doInRedis(connection);
+        });
+        when(connection.keyCommands()).thenReturn(keyCommands);
+        when(keyCommands.scan(any(org.springframework.data.redis.core.ScanOptions.class))).thenReturn(cursor);
+
+        List<byte[]> scannedKeys = List.of(
+                "user-refresh:u1:tok-a".getBytes(StandardCharsets.UTF_8),
+                "user-refresh:u1:tok-b".getBytes(StandardCharsets.UTF_8));
+        Iterator<byte[]> iterator = scannedKeys.iterator();
+        when(cursor.hasNext()).thenAnswer(inv -> iterator.hasNext());
+        when(cursor.next()).thenAnswer(inv -> iterator.next());
+
+        List<String> visited = new ArrayList<>();
+        Consumer<String> perKey = visited::add;
+
+        store.deleteByPattern("user-refresh:u1:*", perKey);
+
+        assertThat(visited).containsExactly("user-refresh:u1:tok-a", "user-refresh:u1:tok-b");
+    }
+
+    @Test
+    void deleteByPattern_closesCursor() {
+        RedisConnection connection = mock(RedisConnection.class);
+        RedisKeyCommands keyCommands = mock(RedisKeyCommands.class);
+        @SuppressWarnings("unchecked")
+        Cursor<byte[]> cursor = mock(Cursor.class);
+
+        when(redisTemplate.executeWithStickyConnection(any())).thenAnswer(invocation -> {
+            RedisCallback<?> callback = invocation.getArgument(0);
+            return callback.doInRedis(connection);
+        });
+        when(connection.keyCommands()).thenReturn(keyCommands);
+        when(keyCommands.scan(any(org.springframework.data.redis.core.ScanOptions.class))).thenReturn(cursor);
+        when(cursor.hasNext()).thenReturn(false);
+
+        store.deleteByPattern("user-refresh:u1:*", key -> { });
+
+        verify(cursor).close();
+    }
+
+    @Test
+    void deleteByPattern_passesPatternToScanOptions() {
+        RedisConnection connection = mock(RedisConnection.class);
+        RedisKeyCommands keyCommands = mock(RedisKeyCommands.class);
+        @SuppressWarnings("unchecked")
+        Cursor<byte[]> cursor = mock(Cursor.class);
+
+        when(redisTemplate.executeWithStickyConnection(any())).thenAnswer(invocation -> {
+            RedisCallback<?> callback = invocation.getArgument(0);
+            return callback.doInRedis(connection);
+        });
+        when(connection.keyCommands()).thenReturn(keyCommands);
+        when(keyCommands.scan(any(org.springframework.data.redis.core.ScanOptions.class))).thenReturn(cursor);
+        when(cursor.hasNext()).thenReturn(false);
+
+        store.deleteByPattern("user-refresh:u1:*", key -> { });
+
+        ArgumentCaptor<org.springframework.data.redis.core.ScanOptions> optionsCaptor =
+                ArgumentCaptor.forClass(org.springframework.data.redis.core.ScanOptions.class);
+        verify(keyCommands).scan(optionsCaptor.capture());
+        assertThat(optionsCaptor.getValue().getPattern()).isEqualTo("user-refresh:u1:*");
     }
 }
