@@ -1,4 +1,4 @@
-package com.enterprise.boilerplate.interfaces.ratelimit;
+package com.enterprise.boilerplate.application.ratelimit;
 
 import com.enterprise.boilerplate.application.port.out.RateLimitPort;
 
