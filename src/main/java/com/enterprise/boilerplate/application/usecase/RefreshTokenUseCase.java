@@ -1,6 +1,7 @@
 package com.enterprise.boilerplate.application.usecase;
 
 import com.enterprise.boilerplate.application.dto.AuthResponse;
+import com.enterprise.boilerplate.application.dto.RefreshTokenRedemption;
 import com.enterprise.boilerplate.application.dto.RefreshTokenRequest;
 import com.enterprise.boilerplate.application.port.out.AuditPort;
 import com.enterprise.boilerplate.application.port.out.TokenServicePort;
@@ -11,8 +12,6 @@ import com.enterprise.boilerplate.domain.exception.InvalidTokenException;
 import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
 import com.enterprise.boilerplate.domain.valueobject.UserId;
-
-import java.util.Optional;
 
 public class RefreshTokenUseCase {
 
@@ -32,26 +31,24 @@ public class RefreshTokenUseCase {
     }
 
     public AuthResponse execute(RefreshTokenRequest request) {
-        Optional<String> reusedByUserId = tokenService.checkReuse(request.refreshToken());
-        if (reusedByUserId.isPresent()) {
-            String userId = reusedByUserId.get();
-            tokenService.revokeAllRefreshTokens(userId);
-            audit.record(AuditEvent.of(AuditEventType.REFRESH_TOKEN_REUSE_DETECTED, userId, null));
-            throw new InvalidTokenException();
-        }
+        RefreshTokenRedemption redemption = tokenService.redeemRefreshToken(request.refreshToken());
 
-        String userId = tokenService.resolveUserIdFromRefreshToken(request.refreshToken())
-                .orElseThrow(InvalidTokenException::new);
+        String userId = switch (redemption) {
+            case RefreshTokenRedemption.Reused reused -> {
+                tokenService.revokeAllRefreshTokens(reused.userId());
+                audit.record(AuditEvent.of(AuditEventType.REFRESH_TOKEN_REUSE_DETECTED, reused.userId(), null));
+                throw new InvalidTokenException();
+            }
+            case RefreshTokenRedemption.Invalid ignored -> throw new InvalidTokenException();
+            case RefreshTokenRedemption.Redeemed redeemed -> redeemed.userId();
+        };
 
         var user = userRepository.findById(UserId.of(userId))
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
         if (!user.active()) {
-            tokenService.revokeRefreshToken(request.refreshToken());
             throw new InactiveUserException();
         }
-
-        tokenService.revokeRefreshToken(request.refreshToken());
 
         String newAccessToken = tokenService.issueAccessToken(user);
         String newRefreshToken = tokenService.issueRefreshToken(user);

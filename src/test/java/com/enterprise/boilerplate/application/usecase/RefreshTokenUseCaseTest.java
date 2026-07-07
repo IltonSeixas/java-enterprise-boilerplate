@@ -1,6 +1,7 @@
 package com.enterprise.boilerplate.application.usecase;
 
 import com.enterprise.boilerplate.application.dto.AuthResponse;
+import com.enterprise.boilerplate.application.dto.RefreshTokenRedemption;
 import com.enterprise.boilerplate.application.dto.RefreshTokenRequest;
 import com.enterprise.boilerplate.application.port.out.AuditPort;
 import com.enterprise.boilerplate.application.port.out.TokenServicePort;
@@ -57,7 +58,8 @@ class RefreshTokenUseCaseTest {
     @Test
     void execute_withInvalidRefreshToken_throwsInvalidTokenException() {
         var useCase = newUseCase();
-        when(tokenService.resolveUserIdFromRefreshToken(REFRESH_TOKEN)).thenReturn(Optional.empty());
+        when(tokenService.redeemRefreshToken(REFRESH_TOKEN))
+                .thenReturn(new RefreshTokenRedemption.Invalid());
 
         assertThatThrownBy(() -> useCase.execute(new RefreshTokenRequest(REFRESH_TOKEN)))
                 .isInstanceOf(InvalidTokenException.class);
@@ -70,7 +72,8 @@ class RefreshTokenUseCaseTest {
         var useCase = newUseCase();
         User user = activeUser();
         String userId = user.id().toString();
-        when(tokenService.resolveUserIdFromRefreshToken(REFRESH_TOKEN)).thenReturn(Optional.of(userId));
+        when(tokenService.redeemRefreshToken(REFRESH_TOKEN))
+                .thenReturn(new RefreshTokenRedemption.Redeemed(userId));
         when(userRepository.findById(UserId.of(userId))).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.execute(new RefreshTokenRequest(REFRESH_TOKEN)))
@@ -78,18 +81,19 @@ class RefreshTokenUseCaseTest {
     }
 
     @Test
-    void execute_withInactiveAccount_revokesTokenAndThrowsInactiveUserException() {
+    void execute_withInactiveAccount_throwsInactiveUserException() {
         var useCase = newUseCase();
         User user = activeUser();
         user.deactivate();
         String userId = user.id().toString();
-        when(tokenService.resolveUserIdFromRefreshToken(REFRESH_TOKEN)).thenReturn(Optional.of(userId));
+        when(tokenService.redeemRefreshToken(REFRESH_TOKEN))
+                .thenReturn(new RefreshTokenRedemption.Redeemed(userId));
         when(userRepository.findById(UserId.of(userId))).thenReturn(Optional.of(user));
 
         assertThatThrownBy(() -> useCase.execute(new RefreshTokenRequest(REFRESH_TOKEN)))
                 .isInstanceOf(InactiveUserException.class);
 
-        verify(tokenService).revokeRefreshToken(REFRESH_TOKEN);
+        // Redemption already revoked the token atomically — no separate revoke call needed.
         verify(tokenService, never()).issueAccessToken(any());
         verify(audit, never()).record(any());
     }
@@ -99,7 +103,8 @@ class RefreshTokenUseCaseTest {
         var useCase = newUseCase();
         User user = activeUser();
         String userId = user.id().toString();
-        when(tokenService.resolveUserIdFromRefreshToken(REFRESH_TOKEN)).thenReturn(Optional.of(userId));
+        when(tokenService.redeemRefreshToken(REFRESH_TOKEN))
+                .thenReturn(new RefreshTokenRedemption.Redeemed(userId));
         when(userRepository.findById(UserId.of(userId))).thenReturn(Optional.of(user));
         when(tokenService.issueAccessToken(user)).thenReturn("new-access-token");
         when(tokenService.issueRefreshToken(user)).thenReturn("new-refresh-token");
@@ -108,7 +113,6 @@ class RefreshTokenUseCaseTest {
 
         assertThat(response.accessToken()).isEqualTo("new-access-token");
         assertThat(response.refreshToken()).isEqualTo("new-refresh-token");
-        verify(tokenService).revokeRefreshToken(REFRESH_TOKEN);
 
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(audit).record(captor.capture());
@@ -120,13 +124,13 @@ class RefreshTokenUseCaseTest {
     void execute_withReusedToken_revokesAllTokensAndRecordsAuditEventAndThrowsInvalidTokenException() {
         var useCase = newUseCase();
         String userId = UserId.generate().toString();
-        when(tokenService.checkReuse(REFRESH_TOKEN)).thenReturn(Optional.of(userId));
+        when(tokenService.redeemRefreshToken(REFRESH_TOKEN))
+                .thenReturn(new RefreshTokenRedemption.Reused(userId));
 
         assertThatThrownBy(() -> useCase.execute(new RefreshTokenRequest(REFRESH_TOKEN)))
                 .isInstanceOf(InvalidTokenException.class);
 
         verify(tokenService).revokeAllRefreshTokens(userId);
-        verify(tokenService, never()).resolveUserIdFromRefreshToken(any());
         verify(userRepository, never()).findById(any());
 
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
