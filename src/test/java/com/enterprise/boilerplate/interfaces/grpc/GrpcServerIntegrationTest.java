@@ -14,12 +14,18 @@ import com.enterprise.boilerplate.application.usecase.RegisterUserUseCase;
 import com.enterprise.boilerplate.application.usecase.UpdateProfileUseCase;
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.repository.UserRepository;
+import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
 import com.enterprise.boilerplate.infrastructure.persistence.memory.InMemoryUserRepository;
 import com.enterprise.boilerplate.interfaces.grpc.proto.AuthResponse;
 import com.enterprise.boilerplate.interfaces.grpc.proto.AuthServiceGrpc;
+import com.enterprise.boilerplate.interfaces.grpc.proto.ChangePasswordRequest;
+import com.enterprise.boilerplate.interfaces.grpc.proto.ChangeRoleRequest;
 import com.enterprise.boilerplate.interfaces.grpc.proto.GetMeRequest;
+import com.enterprise.boilerplate.interfaces.grpc.proto.GetUserRequest;
 import com.enterprise.boilerplate.interfaces.grpc.proto.LoginRequest;
+import com.enterprise.boilerplate.interfaces.grpc.proto.LogoutRequest;
+import com.enterprise.boilerplate.interfaces.grpc.proto.RefreshTokenRequest;
 import com.enterprise.boilerplate.interfaces.grpc.proto.RegisterRequest;
 import com.enterprise.boilerplate.interfaces.grpc.proto.UpdateProfileRequest;
 import com.enterprise.boilerplate.interfaces.grpc.proto.UserResponse;
@@ -59,10 +65,11 @@ class GrpcServerIntegrationTest {
     private AuthServiceGrpc.AuthServiceBlockingStub authStub;
     private UserServiceGrpc.UserServiceBlockingStub userStub;
     private FakeTokenService tokenService;
+    private UserRepository userRepository;
 
     @BeforeEach
     void startServer() throws Exception {
-        UserRepository userRepository = new InMemoryUserRepository();
+        userRepository = new InMemoryUserRepository();
         PasswordHasherPort hasher = new PlainTextHasher();
         tokenService = new FakeTokenService();
         AuditPort audit = event -> { };
@@ -159,10 +166,207 @@ class GrpcServerIntegrationTest {
                 .hasMessageContaining("ALREADY_EXISTS");
     }
 
+    @Test
+    void getUser_returnsAnotherUsersProfile_whenCallerIsAuthenticated() {
+        authStub.register(RegisterRequest.newBuilder()
+                .setEmail("target@example.com")
+                .setPassword("super-secret-password")
+                .setName("Target User")
+                .build());
+        UserResponse target = authStub.register(RegisterRequest.newBuilder()
+                .setEmail("caller@example.com")
+                .setPassword("super-secret-password")
+                .setName("Caller User")
+                .build());
+        AuthResponse session = authStub.login(LoginRequest.newBuilder()
+                .setEmail("caller@example.com")
+                .setPassword("super-secret-password")
+                .build());
+
+        UserResponse fetched = authenticatedUserStub(session.getAccessToken())
+                .getUser(GetUserRequest.newBuilder().setUserId(target.getId()).build());
+
+        assertThat(fetched.getId()).isEqualTo(target.getId());
+        assertThat(fetched.getEmail()).isEqualTo("caller@example.com");
+    }
+
+    @Test
+    void getUser_withoutBearerToken_throwsUnauthenticated() {
+        assertThatThrownBy(() -> userStub.getUser(GetUserRequest.newBuilder().setUserId("any").build()))
+                .isInstanceOf(StatusRuntimeException.class)
+                .hasMessageContaining("UNAUTHENTICATED");
+    }
+
+    @Test
+    void changePassword_updatesPasswordAndAllowsLoginWithNewPassword() {
+        authStub.register(RegisterRequest.newBuilder()
+                .setEmail("pwchange@example.com")
+                .setPassword("original-password")
+                .setName("Password Changer")
+                .build());
+        AuthResponse session = authStub.login(LoginRequest.newBuilder()
+                .setEmail("pwchange@example.com")
+                .setPassword("original-password")
+                .build());
+
+        authenticatedUserStub(session.getAccessToken())
+                .changePassword(ChangePasswordRequest.newBuilder()
+                        .setCurrentPassword("original-password")
+                        .setNewPassword("brand-new-password")
+                        .build());
+
+        AuthResponse relogin = authStub.login(LoginRequest.newBuilder()
+                .setEmail("pwchange@example.com")
+                .setPassword("brand-new-password")
+                .build());
+        assertThat(relogin.getAccessToken()).isNotBlank();
+    }
+
+    @Test
+    void changePassword_withWrongCurrentPassword_throwsInvalidArgument() {
+        authStub.register(RegisterRequest.newBuilder()
+                .setEmail("pwreject@example.com")
+                .setPassword("original-password")
+                .setName("Rejector")
+                .build());
+        AuthResponse session = authStub.login(LoginRequest.newBuilder()
+                .setEmail("pwreject@example.com")
+                .setPassword("original-password")
+                .build());
+
+        assertThatThrownBy(() -> authenticatedUserStub(session.getAccessToken())
+                .changePassword(ChangePasswordRequest.newBuilder()
+                        .setCurrentPassword("wrong-password")
+                        .setNewPassword("brand-new-password")
+                        .build()))
+                .isInstanceOf(StatusRuntimeException.class)
+                .hasMessageContaining("INVALID_ARGUMENT");
+    }
+
+    @Test
+    void changeRole_asOwner_promotesTargetUser() {
+        User owner = User.create(Email.of("owner@example.com"), PasswordHash.of("hashed:owner-password"),
+                "Owner", User.Role.OWNER);
+        userRepository.saveFirstOwner(owner);
+        String ownerAccessToken = tokenService.issueAccessToken(owner);
+
+        UserResponse target = authStub.register(RegisterRequest.newBuilder()
+                .setEmail("promote-me@example.com")
+                .setPassword("super-secret-password")
+                .setName("Future Admin")
+                .build());
+
+        UserResponse promoted = authenticatedUserStub(ownerAccessToken)
+                .changeRole(ChangeRoleRequest.newBuilder()
+                        .setUserId(target.getId())
+                        .setRole("ADMIN")
+                        .build());
+
+        assertThat(promoted.getRole()).isEqualTo("ADMIN");
+    }
+
+    @Test
+    void changeRole_asRegularUser_throwsPermissionDenied() {
+        // The first-ever registration becomes OWNER (see RegisterUserUseCase); consume
+        // that slot with a throwaway account so "nonadmin" below is a plain USER.
+        authStub.register(RegisterRequest.newBuilder()
+                .setEmail("first-owner-slot@example.com")
+                .setPassword("super-secret-password")
+                .setName("Owner Slot")
+                .build());
+        authStub.register(RegisterRequest.newBuilder()
+                .setEmail("nonadmin@example.com")
+                .setPassword("super-secret-password")
+                .setName("Regular User")
+                .build());
+        AuthResponse session = authStub.login(LoginRequest.newBuilder()
+                .setEmail("nonadmin@example.com")
+                .setPassword("super-secret-password")
+                .build());
+        UserResponse target = authStub.register(RegisterRequest.newBuilder()
+                .setEmail("victim@example.com")
+                .setPassword("super-secret-password")
+                .setName("Victim")
+                .build());
+
+        assertThatThrownBy(() -> authenticatedUserStub(session.getAccessToken())
+                .changeRole(ChangeRoleRequest.newBuilder()
+                        .setUserId(target.getId())
+                        .setRole("ADMIN")
+                        .build()))
+                .isInstanceOf(StatusRuntimeException.class)
+                .hasMessageContaining("PERMISSION_DENIED");
+    }
+
+    @Test
+    void refreshToken_rotatesTokenPairAndOldRefreshTokenNoLongerWorks() {
+        authStub.register(RegisterRequest.newBuilder()
+                .setEmail("refresher@example.com")
+                .setPassword("super-secret-password")
+                .setName("Refresher")
+                .build());
+        AuthResponse session = authStub.login(LoginRequest.newBuilder()
+                .setEmail("refresher@example.com")
+                .setPassword("super-secret-password")
+                .build());
+
+        AuthResponse rotated = authStub.refreshToken(RefreshTokenRequest.newBuilder()
+                .setRefreshToken(session.getRefreshToken())
+                .build());
+
+        assertThat(rotated.getAccessToken()).isNotBlank();
+        assertThat(rotated.getRefreshToken()).isNotEqualTo(session.getRefreshToken());
+
+        assertThatThrownBy(() -> authStub.refreshToken(RefreshTokenRequest.newBuilder()
+                .setRefreshToken(session.getRefreshToken())
+                .build()))
+                .isInstanceOf(StatusRuntimeException.class)
+                .hasMessageContaining("UNAUTHENTICATED");
+    }
+
+    @Test
+    void refreshToken_withUnknownToken_throwsUnauthenticated() {
+        assertThatThrownBy(() -> authStub.refreshToken(RefreshTokenRequest.newBuilder()
+                .setRefreshToken("never-issued-token")
+                .build()))
+                .isInstanceOf(StatusRuntimeException.class)
+                .hasMessageContaining("UNAUTHENTICATED");
+    }
+
+    @Test
+    void logout_revokesRefreshTokenSoItCanNoLongerBeUsed() {
+        authStub.register(RegisterRequest.newBuilder()
+                .setEmail("loggingout@example.com")
+                .setPassword("super-secret-password")
+                .setName("Logger Outer")
+                .build());
+        AuthResponse session = authStub.login(LoginRequest.newBuilder()
+                .setEmail("loggingout@example.com")
+                .setPassword("super-secret-password")
+                .build());
+
+        authenticatedAuthStub(session.getAccessToken())
+                .logout(LogoutRequest.newBuilder().setRefreshToken(session.getRefreshToken()).build());
+
+        assertThatThrownBy(() -> authStub.refreshToken(RefreshTokenRequest.newBuilder()
+                .setRefreshToken(session.getRefreshToken())
+                .build()))
+                .isInstanceOf(StatusRuntimeException.class)
+                .hasMessageContaining("UNAUTHENTICATED");
+    }
+
     private UserServiceGrpc.UserServiceBlockingStub authenticatedUserStub(String accessToken) {
+        return userStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(bearerMetadata(accessToken)));
+    }
+
+    private AuthServiceGrpc.AuthServiceBlockingStub authenticatedAuthStub(String accessToken) {
+        return authStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(bearerMetadata(accessToken)));
+    }
+
+    private static Metadata bearerMetadata(String accessToken) {
         Metadata metadata = new Metadata();
         metadata.put(Metadata.Key.of("authorization", Metadata.ASCII_STRING_MARSHALLER), "Bearer " + accessToken);
-        return userStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
+        return metadata;
     }
 
     private static final class PlainTextHasher implements PasswordHasherPort {
