@@ -2,6 +2,7 @@ package com.enterprise.boilerplate.infrastructure.config;
 
 import com.enterprise.boilerplate.config.properties.SecurityProperties;
 import com.enterprise.boilerplate.infrastructure.security.JwtAuthenticationFilter;
+import com.enterprise.boilerplate.infrastructure.security.SensitiveActionRateLimitFilter;
 import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,10 +29,14 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final SensitiveActionRateLimitFilter sensitiveActionRateLimitFilter;
     private final List<String> allowedOrigins;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, SecurityProperties securityProperties) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          SensitiveActionRateLimitFilter sensitiveActionRateLimitFilter,
+                          SecurityProperties securityProperties) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.sensitiveActionRateLimitFilter = sensitiveActionRateLimitFilter;
         this.allowedOrigins = securityProperties.cors().allowedOrigins();
     }
 
@@ -56,6 +61,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(sensitiveActionRateLimitFilter, JwtAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/prometheus").permitAll()

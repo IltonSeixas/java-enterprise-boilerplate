@@ -2,7 +2,7 @@ package com.enterprise.boilerplate.interfaces.grpc;
 
 import com.enterprise.boilerplate.application.port.out.RateLimitPort;
 import com.enterprise.boilerplate.config.properties.RateLimitProperties;
-import com.enterprise.boilerplate.interfaces.ratelimit.SlidingWindowRateLimiter;
+import com.enterprise.boilerplate.application.ratelimit.SlidingWindowRateLimiter;
 import io.grpc.Grpc;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;

@@ -2,7 +2,7 @@ package com.enterprise.boilerplate.interfaces.filter;
 
 import com.enterprise.boilerplate.application.port.out.RateLimitPort;
 import com.enterprise.boilerplate.config.properties.RateLimitProperties;
-import com.enterprise.boilerplate.interfaces.ratelimit.SlidingWindowRateLimiter;
+import com.enterprise.boilerplate.application.ratelimit.SlidingWindowRateLimiter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
