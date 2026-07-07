@@ -4,6 +4,7 @@ import com.enterprise.boilerplate.application.dto.ListUsersRequest;
 import com.enterprise.boilerplate.application.dto.PageResponse;
 import com.enterprise.boilerplate.application.dto.UserResponse;
 import com.enterprise.boilerplate.domain.entity.User;
+import com.enterprise.boilerplate.domain.exception.DomainValidationException;
 import com.enterprise.boilerplate.domain.exception.ForbiddenException;
 import com.enterprise.boilerplate.domain.exception.InvalidRoleException;
 import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
@@ -44,7 +45,7 @@ public class ListUsersUseCase {
     private PageCriteria buildPageCriteria(ListUsersRequest request) {
         String sortBy = (request.sortBy() == null || request.sortBy().isBlank()) ? "createdAt" : request.sortBy();
         if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
-            throw new IllegalArgumentException("Invalid sortBy field: " + sortBy);
+            throw new DomainValidationException("Invalid sortBy field: " + sortBy);
         }
 
         PageCriteria.SortDirection direction;
@@ -53,7 +54,7 @@ public class ListUsersUseCase {
                     ? PageCriteria.SortDirection.ASC
                     : PageCriteria.SortDirection.valueOf(request.direction().toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid direction: " + request.direction());
+            throw new DomainValidationException("Invalid direction: " + request.direction());
         }
 
         return PageCriteria.of(request.page(), request.size(), sortBy, direction);

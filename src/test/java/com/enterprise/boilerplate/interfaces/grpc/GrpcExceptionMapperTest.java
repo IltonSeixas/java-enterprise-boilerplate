@@ -1,12 +1,15 @@
 package com.enterprise.boilerplate.interfaces.grpc;
 
+import com.enterprise.boilerplate.domain.exception.DomainValidationException;
 import com.enterprise.boilerplate.domain.exception.ForbiddenException;
 import com.enterprise.boilerplate.domain.exception.InactiveUserException;
 import com.enterprise.boilerplate.domain.exception.InsufficientPermissionsException;
 import com.enterprise.boilerplate.domain.exception.InvalidEmailException;
+import com.enterprise.boilerplate.domain.exception.InvalidNameException;
 import com.enterprise.boilerplate.domain.exception.InvalidPasswordException;
 import com.enterprise.boilerplate.domain.exception.InvalidRoleException;
 import com.enterprise.boilerplate.domain.exception.InvalidTokenException;
+import com.enterprise.boilerplate.domain.exception.InvalidUserIdException;
 import com.enterprise.boilerplate.domain.exception.UserAlreadyExistsException;
 import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
 import io.grpc.Status;
@@ -39,6 +42,30 @@ class GrpcExceptionMapperTest {
     @Test
     void mapsInvalidRoleException_toInvalidArgument() {
         assertThat(statusOf(new InvalidRoleException("superuser")).getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT);
+    }
+
+    @Test
+    void mapsInvalidNameException_toInvalidArgument() {
+        assertThat(statusOf(new InvalidNameException()).getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT);
+    }
+
+    @Test
+    void mapsInvalidUserIdException_toInvalidArgument() {
+        assertThat(statusOf(new InvalidUserIdException("not-a-uuid")).getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT);
+    }
+
+    @Test
+    void mapsDomainValidationException_toInvalidArgument() {
+        assertThat(statusOf(new DomainValidationException("bad field")).getCode())
+                .isEqualTo(Status.Code.INVALID_ARGUMENT);
+    }
+
+    @Test
+    void mapsIllegalArgumentException_toInvalidArgument() {
+        assertThat(statusOf(new IllegalArgumentException("bad sortBy")).getCode())
                 .isEqualTo(Status.Code.INVALID_ARGUMENT);
     }
 
