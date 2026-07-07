@@ -3,6 +3,7 @@ package com.enterprise.boilerplate.application.usecase;
 import com.enterprise.boilerplate.application.dto.ListUsersRequest;
 import com.enterprise.boilerplate.application.dto.PageResponse;
 import com.enterprise.boilerplate.domain.entity.User;
+import com.enterprise.boilerplate.domain.exception.DomainValidationException;
 import com.enterprise.boilerplate.domain.exception.ForbiddenException;
 import com.enterprise.boilerplate.domain.exception.InvalidRoleException;
 import com.enterprise.boilerplate.domain.exception.UserNotFoundException;
@@ -118,26 +119,26 @@ class ListUsersUseCaseTest {
     }
 
     @Test
-    void execute_withInvalidSortBy_throwsIllegalArgumentException() {
+    void execute_withInvalidSortBy_throwsDomainValidationException() {
         var useCase = newUseCase();
         User admin = userWithRole(User.Role.ADMIN);
         when(userRepository.findById(admin.id())).thenReturn(Optional.of(admin));
 
         assertThatThrownBy(() -> useCase.execute(admin.id().toString(),
                 new ListUsersRequest(null, null, null, 0, 20, "passwordHash", "ASC")))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(DomainValidationException.class)
                 .hasMessageContaining("Invalid sortBy");
     }
 
     @Test
-    void execute_withInvalidDirection_throwsIllegalArgumentException() {
+    void execute_withInvalidDirection_throwsDomainValidationException() {
         var useCase = newUseCase();
         User admin = userWithRole(User.Role.ADMIN);
         when(userRepository.findById(admin.id())).thenReturn(Optional.of(admin));
 
         assertThatThrownBy(() -> useCase.execute(admin.id().toString(),
                 new ListUsersRequest(null, null, null, 0, 20, "name", "UPWARD")))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(DomainValidationException.class)
                 .hasMessageContaining("Invalid direction");
     }
 }

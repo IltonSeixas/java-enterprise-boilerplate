@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.interfaces.grpc;
 
+import com.enterprise.boilerplate.domain.exception.DomainValidationException;
 import com.enterprise.boilerplate.domain.exception.ForbiddenException;
 import com.enterprise.boilerplate.domain.exception.InactiveUserException;
 import com.enterprise.boilerplate.domain.exception.InsufficientPermissionsException;
@@ -40,6 +41,8 @@ public final class GrpcExceptionMapper {
             case InvalidNameException e -> Status.INVALID_ARGUMENT;
             case InvalidUserIdException e -> Status.INVALID_ARGUMENT;
             case InvalidRoleException e -> Status.INVALID_ARGUMENT;
+            case DomainValidationException e -> Status.INVALID_ARGUMENT;
+            case IllegalArgumentException e -> Status.INVALID_ARGUMENT;
             case ConstraintViolationException e -> Status.INVALID_ARGUMENT;
             case UserAlreadyExistsException e -> Status.ALREADY_EXISTS;
             case UserNotFoundException e -> Status.NOT_FOUND;
