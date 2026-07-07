@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.infrastructure.security;
 
+import com.enterprise.boilerplate.application.dto.RefreshTokenRedemption;
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.valueobject.Email;
 import com.enterprise.boilerplate.domain.valueobject.PasswordHash;
@@ -84,14 +85,6 @@ class JwtTokenServiceTest {
     }
 
     @Test
-    void checkReuse_returnsEmpty_whenTokenWasNeverRevoked() throws Exception {
-        JwtTokenService service = newService(generateKeyPair());
-        when(tokenStore.get("used-refresh:some-token")).thenReturn(Optional.empty());
-
-        assertThat(service.checkReuse("some-token")).isEmpty();
-    }
-
-    @Test
     void revokeRefreshToken_writesTombstone_whenTokenExisted() throws Exception {
         JwtTokenService service = newService(generateKeyPair());
         String userId = user.id().toString();
@@ -115,12 +108,41 @@ class JwtTokenServiceTest {
     }
 
     @Test
-    void checkReuse_returnsUserId_afterTokenWasRevoked() throws Exception {
+    void redeemRefreshToken_returnsInvalid_whenTokenNeverExisted() throws Exception {
+        JwtTokenService service = newService(generateKeyPair());
+        when(tokenStore.redeemRefreshToken(anyString(), anyString(), anyLong()))
+                .thenReturn(new RedisTokenStore.RedeemResult.Invalid());
+
+        assertThat(service.redeemRefreshToken("unknown-token"))
+                .isInstanceOf(RefreshTokenRedemption.Invalid.class);
+    }
+
+    @Test
+    void redeemRefreshToken_returnsRedeemedAndCleansUpUserIndex_whenTokenWasLive() throws Exception {
         JwtTokenService service = newService(generateKeyPair());
         String userId = user.id().toString();
-        when(tokenStore.get("used-refresh:replayed-token")).thenReturn(Optional.of(userId));
+        when(tokenStore.redeemRefreshToken(eq("used-refresh:live-token"), eq("refresh:live-token"), anyLong()))
+                .thenReturn(new RedisTokenStore.RedeemResult.Redeemed(userId));
 
-        assertThat(service.checkReuse("replayed-token")).contains(userId);
+        var result = service.redeemRefreshToken("live-token");
+
+        assertThat(result).isInstanceOf(RefreshTokenRedemption.Redeemed.class);
+        assertThat(((RefreshTokenRedemption.Redeemed) result).userId()).isEqualTo(userId);
+        verify(tokenStore).delete("user-refresh:" + userId + ":live-token");
+    }
+
+    @Test
+    void redeemRefreshToken_returnsReused_whenTombstoneAlreadyExists() throws Exception {
+        JwtTokenService service = newService(generateKeyPair());
+        String userId = user.id().toString();
+        when(tokenStore.redeemRefreshToken(anyString(), anyString(), anyLong()))
+                .thenReturn(new RedisTokenStore.RedeemResult.Reused(userId));
+
+        var result = service.redeemRefreshToken("replayed-token");
+
+        assertThat(result).isInstanceOf(RefreshTokenRedemption.Reused.class);
+        assertThat(((RefreshTokenRedemption.Reused) result).userId()).isEqualTo(userId);
+        verify(tokenStore, never()).delete(anyString());
     }
 
     private JwtTokenService newService(KeyPair keyPair) throws IOException {

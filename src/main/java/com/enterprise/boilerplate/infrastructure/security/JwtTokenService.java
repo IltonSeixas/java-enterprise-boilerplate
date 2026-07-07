@@ -1,5 +1,6 @@
 package com.enterprise.boilerplate.infrastructure.security;
 
+import com.enterprise.boilerplate.application.dto.RefreshTokenRedemption;
 import com.enterprise.boilerplate.application.port.out.TokenServicePort;
 import com.enterprise.boilerplate.domain.entity.User;
 import com.enterprise.boilerplate.domain.exception.InvalidTokenException;
@@ -102,8 +103,21 @@ public class JwtTokenService implements TokenServicePort {
     }
 
     @Override
-    public Optional<String> checkReuse(String refreshToken) {
-        return tokenStore.get(USED_REFRESH_PREFIX + refreshToken);
+    public RefreshTokenRedemption redeemRefreshToken(String refreshToken) {
+        RedisTokenStore.RedeemResult result = tokenStore.redeemRefreshToken(
+                USED_REFRESH_PREFIX + refreshToken, REFRESH_KEY_PREFIX + refreshToken, REUSE_TOMBSTONE_TTL_SECONDS);
+
+        return switch (result) {
+            case RedisTokenStore.RedeemResult.Reused reused -> new RefreshTokenRedemption.Reused(reused.userId());
+            case RedisTokenStore.RedeemResult.Redeemed redeemed -> {
+                // The atomic script already deleted refresh:<token> and wrote the
+                // tombstone; the per-user index entry has no reuse-detection role, so
+                // it is cleaned up here as a regular (non-atomic) follow-up delete.
+                tokenStore.delete(USER_REFRESH_PREFIX + redeemed.userId() + ":" + refreshToken);
+                yield new RefreshTokenRedemption.Redeemed(redeemed.userId());
+            }
+            case RedisTokenStore.RedeemResult.Invalid ignored -> new RefreshTokenRedemption.Invalid();
+        };
     }
 
     @Override
