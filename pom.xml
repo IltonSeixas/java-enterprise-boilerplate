@@ -21,16 +21,16 @@
     <properties>
         <java.version>21</java.version>
         <commons-compress.version>1.28.0</commons-compress.version>
-        <tomcat.version>11.0.23</tomcat.version>
-        <jackson.version>2.22.0</jackson.version>
+        <tomcat.version>11.0.24</tomcat.version>
+        <jackson.version>2.22.1</jackson.version>
         <jjwt.version>0.13.0</jjwt.version>
         <springdoc.version>3.0.3</springdoc.version>
-        <grpc.version>1.82.1</grpc.version>
+        <grpc.version>1.82.2</grpc.version>
         <grpc-spring-boot.version>3.1.0.RELEASE</grpc-spring-boot.version>
         <protobuf.version>3.25.5</protobuf.version>
         <opentelemetry.version>1.63.0</opentelemetry.version>
-        <opentelemetry-semconv.version>1.42.0</opentelemetry-semconv.version>
-        <bouncycastle.version>1.84</bouncycastle.version>
+        <opentelemetry-semconv.version>1.43.0</opentelemetry-semconv.version>
+        <bouncycastle.version>1.85</bouncycastle.version>
         <testcontainers.version>1.21.4</testcontainers.version>
         <archunit.version>1.4.2</archunit.version>
         <resilience4j.version>2.4.0</resilience4j.version>
